@@ -605,8 +605,7 @@ function Analista({user,onLogout}){
  
   if(moduloB) return <ModuloB sol={moduloB} user={user} onVolver={()=>setModuloB(null)} onActualizar={cargar}/>;
   if(moduloC) return <ModuloC sol={moduloC} user={user} onVolver={()=>setModuloC(null)} onActualizar={cargar}/>;
-  if(moduloC) return <ModuloC sol={moduloC} user={user} onVolver={()=>setModuloC(null)} onActualizar={cargar}/>;
- 
+  
   const list=sols.filter(s=>filtro==='todas'||s.estado===filtro);
   const cnt={p:sols.filter(s=>s.estado==='pendiente').length,a:sols.filter(s=>s.estado==='aprobado').length,r:sols.filter(s=>s.estado==='rechazado').length};
   const rowColor={aprobado:'rgba(74,224,138,0.04)',rechazado:'rgba(224,80,80,0.04)',pendiente:'transparent'};
