@@ -748,6 +748,8 @@ export default function ModuloContabilidad({ user }) {
                     <span style={{fontSize:10,color:C.text3}}>{a.fecha} · {a.usuario}</span>
                     {a.referencia && <span style={{fontSize:10,color:C.text2,background:'rgba(255,255,255,0.05)',borderRadius:4,padding:'2px 8px'}}>{a.referencia}</span>}
                     <span style={{fontSize:13,fontWeight:900,color:C.gold}}>{fmt(total)}</span>
+                      <button onClick={e=>{e.stopPropagation();abrirEdicion(a);}} style={{background:C.goldL,color:C.gold,border:`1px solid ${C.goldB}`,borderRadius:6,padding:'5px 12px',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textTransform:'uppercase'}}>✏️ EDITAR</button>
+<button onClick={e=>{e.stopPropagation();eliminarAsiento(a.id);}} style={{background:C.redL,color:C.red,border:`1px solid ${C.redB}`,borderRadius:6,padding:'5px 12px',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',textTransform:'uppercase'}}>🗑️ ELIMINAR</button>
                   </div>
                 </div>
                 <table style={{width:'100%',borderCollapse:'collapse'}}>
