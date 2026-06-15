@@ -595,7 +595,7 @@ function PanelInformes({sols}){
 // ── ANALISTA ──────────────────────────────────────────────────────────────────
 function Analista({user,onLogout}){
   const [tab,setTab]=useState('solicitudes');
-  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);const [moduloC,setModuloC]=useState(null);
+  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);useState(null);const [moduloC,setModuloC]=useState(null);
   useEffect(()=>{cargar();const iv=setInterval(cargar,15000);return()=>clearInterval(iv);},[]);
   async function cargar(){setSols(await db.getSolicitudes());setLoading(false);}
   async function resolver(id,estado,obs){
