@@ -1,11 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
-
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const IVA = 1.21;
-
+ 
 export const db = {
   async getLineas() {
     const { data, error } = await supabase.from('lineas').select('*').order('created_at');
@@ -72,30 +69,28 @@ export const db = {
   async updateSolicitud(id, updates) {
     const { error } = await supabase.from('solicitudes').update(updates).eq('id', id);
     if (error) throw error;
-  }                          // ← línea 74, cierra updateSolicitud
-                                // ← AGREGÁ ACÁ:
-    async getSolicitudByToken(token) {
-      const { data, error } = await supabase
-        .from('solicitudes')
-        .select('*')
-        .eq('token_firma', token)
-        .single();
-      if (error) return null;
-      return data;
-    },
-
-    async saveFirmaCliente(solicitudId, metadataFirma) {
-      const { error } = await supabase
-        .from('solicitudes')
-        .update({
-          firma_cliente_completada: true,
-          firma_metadata: metadataFirma,
-          estado: 'aprobado',
-          estado_texto: 'FIRMADO — PENDIENTE DESEMBOLSO',
-          fecha_firma_cliente: new Date().toISOString(),
-        })
-        .eq('id', solicitudId);
-      if (error) throw error;
-      return true;
-    },
+  },
+  async getSolicitudByToken(token) {
+    const { data, error } = await supabase
+      .from('solicitudes')
+      .select('*')
+      .eq('token_firma', token)
+      .single();
+    if (error) return null;
+    return data;
+  },
+  async saveFirmaCliente(solicitudId, metadataFirma) {
+    const { error } = await supabase
+      .from('solicitudes')
+      .update({
+        firma_cliente_completada: true,
+        firma_metadata: metadataFirma,
+        estado: 'aprobado',
+        estado_texto: 'FIRMADO — PENDIENTE DESEMBOLSO',
+        fecha_firma_cliente: new Date().toISOString(),
+      })
+      .eq('id', solicitudId);
+    if (error) throw error;
+    return true;
+  },
 };
