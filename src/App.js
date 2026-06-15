@@ -276,7 +276,7 @@ if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()
             })}
           </>
         )}
-        {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin}/>}
+        {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin} onDesembolsar={setModuloE}/>}
         {tab==='cartera'&&<ModuloF user={user} onVerCuenta={setCuentaCte}/>}
         {tab==='reportes'&&<ModuloH user={user}/>}
         {tab==='embajadores'&&(
@@ -607,7 +607,7 @@ function PanelInformes({sols}){
 // ── ANALISTA ──────────────────────────────────────────────────────────────────
 function Analista({user,onLogout}){
   const [tab,setTab]=useState('solicitudes');
-  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);const [legajo,setLegajo]=useState(null);
+  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);const [legajo,setLegajo]=useState(null);const [legajo,setLegajo]=useState(null);
   useEffect(()=>{cargar();const iv=setInterval(cargar,15000);return()=>clearInterval(iv);},[]);
   async function cargar(){setSols(await db.getSolicitudes());setLoading(false);}
   async function resolver(id,estado,obs){
@@ -617,6 +617,7 @@ function Analista({user,onLogout}){
  
   if(moduloB) return <ModuloB sol={moduloB} user={user} onVolver={()=>setModuloB(null)} onActualizar={cargar}/>;
   if(moduloC) return <ModuloC sol={moduloC} user={user} onVolver={()=>setModuloC(null)} onActualizar={cargar}/>;
+if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegajo(null)} onActualizar={cargar}/>;
 if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegajo(null)} onActualizar={cargar}/>;
   
   const list=sols.filter(s=>filtro==='todas'||s.estado===filtro);
@@ -662,7 +663,7 @@ if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegaj
                   </thead>
                   <tbody>
                     {list.map(s=>(
-                      <tr key={s.id} onClick={()=>s.estado==='pendiente'?setModuloB(s):s.estado==='aprobado'?setModuloC(s):setDetalle(s)}
+                      <tr key={s.id} onClick={()=>s.estado==='pendiente'?setModuloB(s):s.firma_cliente_completada?setLegajo(s):s.estado==='aprobado'?setModuloC(s):setDetalle(s)}
                         style={{background:rowColor[s.estado],cursor:'pointer',borderLeft:`3px solid ${rowBorder[s.estado]}`}}>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
                           <div style={{fontWeight:900,color:s.estado==='rechazado'?C.red:C.text,textTransform:'uppercase',letterSpacing:'0.03em',fontSize:12}}>{s.cliente?.nombre} {s.cliente?.apellido}</div>
@@ -1300,7 +1301,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
  
 const EMPRESA = {
   nombre: 'AUTOLOGROS S.A.',
-  cuit: '30-XXXXXXXXX-X', // completar
+  cuit: '30-71934732-7', // completar
   domicilio: 'Lavalle 1390, Piso 3, Oficina B, Ciudad Autónoma de Buenos Aires',
   representante: 'Nicolás Issaharoff',
   cargo: 'Presidente',
