@@ -80,6 +80,41 @@ function CuentaCorriente({ credito, user, onVolver, onActualizar }) {
         usuario: user.nombre,
       });
 
+      // Asiento contable automático — COBRO DE CUOTA
+      const astIdPago = `AST-PAG-${cuota.id}-${Date.now()}`;
+      const netoCuota = cuota.intereses + (cuota.seguro||0) + (cuota.comisiones||0);
+      const ivaCuota = Math.round(netoCuota * 0.21 / 1.21); // IVA incluido en los importes
+      await db.supabase.from('asientos').insert({
+        id: astIdPago,
+        fecha: fechaPago,
+        descripcion: `Cobro cuota ${cuota.numero}/${credito.plazo} — ${credito.cliente_nombre}${mora > 0 ? ` (mora ${mora}d)` : ''}`,
+        referencia: compPago,
+        tipo: 'automatico',
+        usuario: user.nombre,
+      });
+      const lineasPago = [
+        { id: `LIN-PAG-1-${cuota.id}`, asiento_id: astIdPago, cuenta_id: 'cta-11', debe: parseFloat(montoPago), haber: 0 },
+        { id: `LIN-PAG-2-${cuota.id}`, asiento_id: astIdPago, cuenta_id: 'cta-13', debe: 0, haber: cuota.capital },
+        { id: `LIN-PAG-3-${cuota.id}`, asiento_id: astIdPago, cuenta_id: 'cta-41', debe: 0, haber: cuota.intereses },
+      ];
+      if ((cuota.comisiones||0) > 0) lineasPago.push({ id: `LIN-PAG-4-${cuota.id}`, asiento_id: astIdPago, cuenta_id: 'cta-42', debe: 0, haber: cuota.comisiones });
+      if ((cuota.seguro||0) > 0) lineasPago.push({ id: `LIN-PAG-5-${cuota.id}`, asiento_id: astIdPago, cuenta_id: 'cta-43', debe: 0, haber: cuota.seguro });
+      if (mora > 0 && interesM > 0) lineasPago.push({ id: `LIN-PAG-6-${cuota.id}`, asiento_id: astIdPago, cuenta_id: 'cta-44', debe: 0, haber: interesM });
+      await db.supabase.from('asiento_lineas').insert(lineasPago);
+
+      // Movimiento en cuenta corriente banco
+      await db.supabase.from('cuenta_banco').insert({
+        id: `CB-PAG-${cuota.id}`,
+        fecha: fechaPago,
+        tipo: 'ingreso',
+        concepto: `COBRO CUOTA ${cuota.numero}/${credito.plazo} — ${credito.cliente_nombre}${mora > 0 ? ` (mora ${mora}d)` : ''}`,
+        referencia: compPago,
+        monto: parseFloat(montoPago),
+        origen: 'automatico',
+        credito_id: credito.id,
+        usuario: user.nombre,
+      });
+
       setModalPago(null);
       setMontoPago('');
       setCompPago('');
