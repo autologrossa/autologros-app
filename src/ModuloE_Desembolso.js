@@ -160,6 +160,35 @@ export default function ModuloE({ sol, user, onVolver, onActualizar }) {
         fecha_desembolso: fechaDesembolso,
       });
 
+      // 5. Asiento contable automático — DESEMBOLSO
+      const astId = `AST-DSB-${id}`;
+      await db.supabase.from('asientos').insert({
+        id: astId,
+        fecha: fechaDesembolso,
+        descripcion: `Desembolso préstamo ${id} — ${cli.nombre} ${cli.apellido}`,
+        referencia: comprobante,
+        tipo: 'automatico',
+        usuario: user.nombre,
+      });
+      await db.supabase.from('asiento_lineas').insert([
+        { id: `LIN-DSB-1-${id}`, asiento_id: astId, cuenta_id: 'cta-13', debe: sol.monto, haber: 0 },
+        { id: `LIN-DSB-2-${id}`, asiento_id: astId, cuenta_id: 'cta-11', debe: 0, haber: montoDesembolso },
+        ...(gastos > 0 ? [{ id: `LIN-DSB-3-${id}`, asiento_id: astId, cuenta_id: 'cta-45', debe: 0, haber: sol.monto - montoDesembolso }] : []),
+      ]);
+
+      // 6. Movimiento en cuenta corriente banco
+      await db.supabase.from('cuenta_banco').insert({
+        id: `CB-DSB-${id}`,
+        fecha: fechaDesembolso,
+        tipo: 'egreso',
+        concepto: `DESEMBOLSO PRÉSTAMO — ${cli.nombre} ${cli.apellido} — ${id}`,
+        referencia: comprobante,
+        monto: montoDesembolso,
+        origen: 'automatico',
+        credito_id: id,
+        usuario: user.nombre,
+      });
+
       setCreditoId(id);
       setExito(true);
       onActualizar();
