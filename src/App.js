@@ -4,8 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import FirmaCliente from './FirmaCliente';
 import LegajoDigital, { PanelLegajos } from './LegajoDigital';
 import ModuloE from './ModuloE_Desembolso';
-import ModuloF from './ModuloF_Cartera';
-import { CuentaCorriente } from './ModuloF_Cartera';
+import ModuloF, { CuentaCorriente } from './ModuloF_Cartera';
 
 import ModuloH from './ModuloH_Reportes';
 import { db } from './supabase';
