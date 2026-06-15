@@ -6,6 +6,7 @@ import ModuloE from './ModuloE_Desembolso';
 import ModuloF, { CuentaCorriente } from './ModuloF_Cartera';
 import ModuloH from './ModuloH_Reportes';
 import ModuloContabilidad from './ModuloContabilidad';
+import ModuloCuentasCorrientes from './ModuloCuentasCorrientes';
 import { db } from './supabase';
 
 // ── Cálculos financieros ──────────────────────────────────────────────────────
@@ -219,7 +220,7 @@ function Admin({user,onLogout}){
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES'],['contabilidad','CONTABILIDAD']]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES'],['contabilidad','CONTABILIDAD'],['cuentas','CUENTAS CTES']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:960,margin:'0 auto'}}>
         {tab==='lineas'&&(
           <>
@@ -279,6 +280,7 @@ function Admin({user,onLogout}){
         {tab==='cartera'&&<ModuloF user={user} onVerCuenta={setCuentaCte}/>}
         {tab==='reportes'&&<ModuloH user={user}/>}
          {tab==='contabilidad'&&<ModuloContabilidad user={user}/>}
+          {tab==='cuentas'&&<ModuloCuentasCorrientes user={user}/>}
         {tab==='embajadores'&&(
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
