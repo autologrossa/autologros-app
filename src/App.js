@@ -1,5 +1,7 @@
 
-import { useState, useEffect } from 'react';
+jsimport { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import FirmaCliente from './FirmaCliente';
 import { db } from './supabase';
  
 // ── Cálculos financieros ──────────────────────────────────────────────────────
