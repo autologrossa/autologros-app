@@ -439,13 +439,16 @@ function FormEmbajador({onGuardar,onCancelar,user,onLogout}){
 
 // ── ANALISTA ──────────────────────────────────────────────────────────────────
 function Analista({user,onLogout}){
-  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);
+  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);
   useEffect(()=>{cargar();const iv=setInterval(cargar,15000);return()=>clearInterval(iv);},[]);
   async function cargar(){setSols(await db.getSolicitudes());setLoading(false);}
   async function resolver(id,estado,obs){
     await db.updateSolicitud(id,{estado,estado_texto:estado==='aprobado'?'APROBADO — PENDIENTE FIRMA':'RECHAZADO',obs,analista:user.nombre,fecha_res:new Date().toLocaleDateString('es-AR')});
     await cargar();setDetalle(null);
   }
+
+  // Si está en Módulo B
+  if(moduloB) return <ModuloB sol={moduloB} user={user} onVolver={()=>setModuloB(null)} onActualizar={cargar}/>;
   const list=sols.filter(s=>filtro==='todas'||s.estado===filtro);
   const cnt={p:sols.filter(s=>s.estado==='pendiente').length,a:sols.filter(s=>s.estado==='aprobado').length,r:sols.filter(s=>s.estado==='rechazado').length};
 
@@ -486,7 +489,7 @@ function Analista({user,onLogout}){
               </thead>
               <tbody>
                 {list.map(s=>(
-                  <tr key={s.id} onClick={()=>setDetalle(s)}
+                  <tr key={s.id} onClick={()=>s.estado==='pendiente'?setModuloB(s):setDetalle(s)}
                     style={{background:rowColor[s.estado],cursor:'pointer',borderLeft:`3px solid ${rowBorder[s.estado]}`}}>
                     <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
                       <div style={{fontWeight:900,color:s.estado==='rechazado'?C.red:C.text,textTransform:'uppercase',letterSpacing:'0.03em',fontSize:12}}>{s.cliente?.nombre} {s.cliente?.apellido}</div>
@@ -783,4 +786,414 @@ export default function App(){
   if(user.rol==='admin') return <Admin user={user} onLogout={()=>setUser(null)}/>;
   if(user.rol==='analista') return <Analista user={user} onLogout={()=>setUser(null)}/>;
   return <Embajador user={user} onLogout={()=>setUser(null)}/>;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MÓDULO B — PRE-APROBACIÓN CREDITICIA
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Helpers para parsear respuesta Nosis ─────────────────────────────────────
+function getNosisVar(variables, nombre) {
+  if (!variables) return null;
+  const v = variables.find(x => x.Nombre === nombre);
+  return v ? v.Valor : null;
+}
+
+function parsearNosis(data) {
+  const contenido = data?.Contenido;
+  const resultado = contenido?.Resultado;
+  if (!resultado || resultado.Estado !== 200) {
+    return { ok: false, error: resultado?.Novedad || 'Sin respuesta' };
+  }
+  const vars = contenido?.Datos?.Variables?.Variable;
+  const arr = Array.isArray(vars) ? vars : vars ? [vars] : [];
+  return {
+    ok: true,
+    // [VI] Identificacion
+    cuil: getNosisVar(arr, 'VI_Identificacion'),
+    // [VI] Domicilio Fiscal
+    domCalle: getNosisVar(arr, 'VI_DomAF_Calle'),
+    domNro: getNosisVar(arr, 'VI_DomAF_Nro'),
+    domPiso: getNosisVar(arr, 'VI_DomAF_Piso'),
+    domDto: getNosisVar(arr, 'VI_DomAF_Dto'),
+    domLoc: getNosisVar(arr, 'VI_DomAF_Loc'),
+    domCP: getNosisVar(arr, 'VI_DomAF_CP'),
+    domProv: getNosisVar(arr, 'VI_DomAF_Prov'),
+    // [VI] Telefonos
+    telCodArea: getNosisVar(arr, 'VI_Tel1_CodArea'),
+    telNro: getNosisVar(arr, 'VI_Tel1_Nro'),
+    // [VI] Inscripcion AFIP
+    esJubilado: getNosisVar(arr, 'VI_Jubilado_Es'),
+    esEmpleado: getNosisVar(arr, 'VI_Empleado_Es'),
+    esMonotributista: getNosisVar(arr, 'VI_Inscrip_Monotributo_Es'),
+    esAutonomo: getNosisVar(arr, 'VI_Inscrip_Autonomo_Es'),
+    antiguedadLaboral: parseInt(getNosisVar(arr, 'VI_AntiguedadLaboral')) || null,
+    // [CI] Comportamiento crediticio
+    compromisoMensual: getNosisVar(arr, 'CI_Vig_CompMensual'),
+    // [HC] Cheques rechazados BCRA
+    cheques6mCant: parseInt(getNosisVar(arr, 'HC_6m_SF_NoPag_Cant')) || 0,
+    cheques6mMonto: getNosisVar(arr, 'HC_6m_SF_NoPag_Monto'),
+    // [QU] Juicios, Quiebras, Concursos
+    concursos24m: parseInt(getNosisVar(arr, 'CQ_24m_Cant')) || 0,
+    // [RC] Referencias Comerciales
+    refVigCant: parseInt(getNosisVar(arr, 'RC_Vig_Cant')) || 0,
+    refVigFuente: getNosisVar(arr, 'RC_Vig_Fuente'),
+    // [CO] Consultados
+    consultas12m: parseInt(getNosisVar(arr, 'CO_12m_Cant')) || 0,
+    // [DF] Deudores Fiscales
+    deudaFiscal: getNosisVar(arr, 'DF_Tiene'),
+    // [FEX] Fuentes Externas
+    cneFecAct: getNosisVar(arr, 'FEX_CNE_FecAct'),
+    cneFecVenc: getNosisVar(arr, 'FEX_CNE_FecVenc'),
+    // [CNE] Cumplimiento Censal
+    cneTiene: getNosisVar(arr, 'CNE_CertificadoTiene'),
+  };
+}
+
+function parsearBCRA(data) {
+  if (!data || data.status !== 200) return { ok: false, error: 'CUIL no encontrado en BCRA' };
+  const resultados = data.results?.periodos?.[0]?.entidades || [];
+  let peorSit = 1;
+  let deudas = [];
+  resultados.forEach(e => {
+    const sit = parseInt(e.situacion);
+    if (sit > peorSit) peorSit = sit;
+    deudas.push({ entidad: e.entidad, situacion: sit, monto: e.monto });
+  });
+  return { ok: true, peorSit, deudas, cantEntidades: resultados.length };
+}
+
+function evaluarCredito(bcra, nosis, prom30) {
+  const alertas = [];
+  const rechazos = [];
+
+  // ── BCRA Central de Deudores ──────────────────────────────────────────────
+  if (bcra && bcra.ok) {
+    if (bcra.peorSit >= 3) rechazos.push(`BCRA: Situación ${bcra.peorSit} — Rechazo automático`);
+    else if (bcra.peorSit === 2) alertas.push('BCRA: Situación 2 — Requiere análisis adicional (Nivel 2 mínimo)');
+  } else {
+    alertas.push('BCRA: No figura en Central de Deudores — sin historial bancario');
+  }
+
+  // ── Nosis VR=9 ────────────────────────────────────────────────────────────
+  if (nosis && nosis.ok) {
+    // Cheques
+    if (nosis.cheques6mCant > 0)
+      rechazos.push(`Nosis: ${nosis.cheques6mCant} cheque(s) sin fondos no pagados en últimos 6 meses`);
+    // Concursos y quiebras
+    if (nosis.concursos24m > 0)
+      rechazos.push(`Nosis: ${nosis.concursos24m} concurso(s)/quiebra(s) en últimos 24 meses`);
+    // Deuda fiscal
+    if (nosis.deudaFiscal === 'SI')
+      alertas.push('Nosis: Registra deudas fiscales en AFIP');
+    // Situación laboral
+    if (nosis.esEmpleado === 'NO' && nosis.esMonotributista === 'NO' && nosis.esAutonomo === 'NO' && nosis.esJubilado === 'NO')
+      alertas.push('Nosis: No figura como empleado, monotributista, autónomo ni jubilado en AFIP');
+    // Compromiso mensual vs capacidad
+    if (nosis.compromisoMensual && prom30 > 0) {
+      const compMens = parseFloat(nosis.compromisoMensual.replace(/[^0-9.]/g, '')) || 0;
+      if (compMens > prom30)
+        alertas.push(`Nosis: Compromiso mensual existente ($${compMens.toLocaleString('es-AR')}) supera el 30% del sueldo`);
+    }
+    // Antigüedad laboral
+    if (nosis.antiguedadLaboral !== null && nosis.antiguedadLaboral < 6)
+      alertas.push(`Nosis: Antigüedad laboral menor a 6 meses (${nosis.antiguedadLaboral} meses)`);
+  }
+
+  const aprobado = rechazos.length === 0;
+  const conObservaciones = aprobado && alertas.length > 0;
+
+  return { aprobado, conObservaciones, rechazos, alertas };
+}
+
+// ── Componente Módulo B ───────────────────────────────────────────────────────
+function ModuloB({ sol, onVolver, onActualizar, user }) {
+  const [loading, setLoading] = useState(false);
+  const [bcraData, setBcraData] = useState(null);
+  const [nosisData, setNosisData] = useState(null);
+  const [error, setError] = useState('');
+  const [obs, setObs] = useState('');
+  const [conf, setConf] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+
+  const cli = sol.cliente || {};
+  const prom = sol.prom_sueldo || 0;
+  const prom30 = prom * 0.30;
+
+  async function consultar() {
+    setLoading(true); setError(''); setBcraData(null); setNosisData(null);
+    try {
+      const [rBcra, rNosis] = await Promise.all([
+        fetch(`/api/bcra?cuil=${cli.cuil}`).then(r => r.json()),
+        fetch(`/api/nosis?cuil=${cli.cuil}&nombre=${encodeURIComponent(cli.nombre||'')}&apellido=${encodeURIComponent(cli.apellido||'')}`).then(r => r.json()),
+      ]);
+      setBcraData(parsearBCRA(rBcra));
+      setNosisData(parsearNosis(rNosis));
+    } catch(e) {
+      setError('Error de conexión. Verificá la red e intentá de nuevo.');
+    }
+    setLoading(false);
+  }
+
+  async function resolver(estado) {
+    setEnviando(true);
+    const bcraResumen = bcraData ? `BCRA Sit. ${bcraData.peorSit} | ${bcraData.cantEntidades} entidad(es)` : 'BCRA: no consultado';
+    const nosisResumen = nosisData?.ok ? `Score Nosis: ${nosisData.score || 'N/D'} | Cheques 6m: ${nosisData.cheques6m} | Juicios 12m: ${nosisData.juicios12m}` : 'Nosis: no consultado';
+    const obsCompleto = `${obs}\n\n--- ANÁLISIS CREDITICIO ---\n${bcraResumen}\n${nosisResumen}`.trim();
+    await db.updateSolicitud(sol.id, {
+      estado,
+      estado_texto: estado === 'aprobado' ? 'PRE-APROBADO — LINK ENVIADO AL CLIENTE' : 'RECHAZADO',
+      obs: obsCompleto,
+      analista: user.nombre,
+      fecha_res: new Date().toLocaleDateString('es-AR'),
+      bcra_data: bcraData,
+      nosis_data: nosisData,
+    });
+    setEnviando(false);
+    onActualizar();
+    onVolver();
+  }
+
+  const bcra = bcraData;
+  const nosis = nosisData;
+  const eval_ = (bcra || nosis) ? evaluarCredito(bcra || { ok: false }, nosis || { ok: false }, prom30) : null;
+
+  const colorSit = sit => sit === 1 ? C.green : sit === 2 ? C.gold : C.red;
+  const fmt = n => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
+
+  return (
+    <div style={{ minHeight: '100vh', background: C.bg2 }}>
+      <Hdr title="ANÁLISIS CREDITICIO — MÓDULO B" user={user} onLogout={() => {}} />
+      <div style={{ padding: 28, maxWidth: 960, margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+          <button onClick={onVolver} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.text3 }}>←</button>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: C.text, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              {cli.nombre} {cli.apellido}
+            </div>
+            <div style={{ fontSize: 12, color: C.text3, marginTop: 2, fontWeight: 400 }}>
+              {sol.id} · CUIL {cli.cuil} · DNI {cli.dni}
+            </div>
+          </div>
+        </div>
+
+        {/* Datos del crédito */}
+        <Card style={{ padding: 20, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+            {[
+              ['LÍNEA', sol.linea_nombre],
+              ['MONTO', fmt(sol.monto)],
+              ['PLAZO', `${sol.plazo} MESES`],
+              ['CUOTA EST.', fmt(sol.cuota)],
+              ['SUELDO PROM.', fmt(prom)],
+              ['30% SUELDO', fmt(prom30)],
+              ['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],
+              ['EMBAJADOR', sol.emb_nombre],
+            ].map(([l, v]) => (
+              <div key={l} style={{ background: C.bg3, borderRadius: 8, padding: '10px 12px', border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{l}</div>
+                <div style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Botón consultar */}
+        {!bcra && !nosis && (
+          <Card style={{ padding: 32, textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 14, color: C.text2, marginBottom: 20, fontWeight: 400 }}>
+              Consultá BCRA y Nosis automáticamente con el CUIL del cliente.
+            </div>
+            {error && <div style={{ background: C.redL, color: C.red, borderRadius: 8, padding: '10px 14px', fontSize: 12, marginBottom: 16, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{error}</div>}
+            <Btn onClick={consultar} disabled={loading} variant="gold" style={{ padding: '12px 40px', fontSize: 13 }}>
+              {loading ? 'CONSULTANDO BCRA + NOSIS...' : '🔍 CONSULTAR BCRA + NOSIS'}
+            </Btn>
+          </Card>
+        )}
+
+        {loading && (
+          <Card style={{ padding: 40, textAlign: 'center', marginBottom: 16 }}>
+            <div style={{ fontSize: 14, color: C.gold, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              CONSULTANDO BCRA Y NOSIS...
+            </div>
+            <div style={{ fontSize: 11, color: C.text3, marginTop: 8, fontWeight: 400 }}>Esto puede demorar hasta 30 segundos</div>
+          </Card>
+        )}
+
+        {/* Resultados */}
+        {(bcra || nosis) && (
+          <>
+            {/* Semáforo */}
+            {eval_ && (
+              <Card style={{
+                padding: 20, marginBottom: 16,
+                background: eval_.rechazos.length > 0 ? C.redL : eval_.conObservaciones ? C.warnL : C.greenL,
+                border: `1.5px solid ${eval_.rechazos.length > 0 ? C.redB : eval_.conObservaciones ? C.goldB : C.greenB}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: eval_.rechazos.length + eval_.alertas.length > 0 ? 14 : 0 }}>
+                  <div style={{ fontSize: 28 }}>
+                    {eval_.rechazos.length > 0 ? '🔴' : eval_.conObservaciones ? '🟡' : '🟢'}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 900, color: eval_.rechazos.length > 0 ? C.red : eval_.conObservaciones ? C.gold : C.green, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      {eval_.rechazos.length > 0 ? 'RECHAZO AUTOMÁTICO' : eval_.conObservaciones ? 'PRE-APROBADO CON OBSERVACIONES' : 'PRE-APROBADO SIN OBSERVACIONES'}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.text2, fontWeight: 400, marginTop: 3 }}>Basado en consulta BCRA + Nosis</div>
+                  </div>
+                </div>
+                {eval_.rechazos.map((r, i) => (
+                  <div key={i} style={{ fontSize: 12, color: C.red, fontWeight: 700, padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>✕ {r}</div>
+                ))}
+                {eval_.alertas.map((a, i) => (
+                  <div key={i} style={{ fontSize: 12, color: C.gold, fontWeight: 700, padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>⚠️ {a}</div>
+                ))}
+              </Card>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              {/* BCRA */}
+              <Card style={{ padding: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 900, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+                  CENTRAL DE DEUDORES BCRA
+                </div>
+                {bcra?.ok ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${colorSit(bcra.peorSit)}20`, border: `2px solid ${colorSit(bcra.peorSit)}` }}>
+                        <span style={{ fontSize: 20, fontWeight: 900, color: colorSit(bcra.peorSit) }}>{bcra.peorSit}</span>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>PEOR SITUACIÓN</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: colorSit(bcra.peorSit) }}>
+                          {bcra.peorSit === 1 ? 'SITUACIÓN NORMAL' : bcra.peorSit === 2 ? 'RIESGO BAJO' : bcra.peorSit === 3 ? 'CON PROBLEMAS' : bcra.peorSit === 4 ? 'ALTO RIESGO' : bcra.peorSit === 5 ? 'IRRECUPERABLE' : 'IRRECUPERABLE (PREJUICIO)'}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.text2, fontWeight: 400 }}>{bcra.cantEntidades} entidad(es) informante(s)</div>
+                    {bcra.deudas.slice(0, 3).map((d, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${C.border}`, fontSize: 11 }}>
+                        <span style={{ color: C.text2, fontWeight: 400 }}>{d.entidad}</span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <span style={{ color: colorSit(d.situacion), fontWeight: 700 }}>SIT {d.situacion}</span>
+                          {d.monto && <span style={{ color: C.text, fontWeight: 700 }}>{fmt(d.monto * 1000)}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div style={{ fontSize: 12, color: C.text3, fontWeight: 400 }}>No figura en la Central de Deudores del BCRA</div>
+                )}
+              </Card>
+
+              {/* Nosis */}
+              <Card style={{ padding: 20 }}>
+                <div style={{ fontSize: 12, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+                  BUREAU NOSIS
+                </div>
+                {nosis?.ok ? (
+                  <div>
+                    <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>SITUACIÓN LABORAL (AFIP)</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+                      {[
+                        ['EMPLEADO REL. DEPENDENCIA', nosis.esEmpleado],
+                        ['MONOTRIBUTISTA', nosis.esMonotributista],
+                        ['AUTÓNOMO', nosis.esAutonomo],
+                        ['JUBILADO', nosis.esJubilado],
+                      ].map(([l, v]) => (
+                        <div key={l} style={{ background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
+                          <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{l}</div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: v === 'SI' ? C.green : v === 'NO' ? C.red : C.text3 }}>{v || 'N/D'}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {nosis.antiguedadLaboral !== null && (
+                      <div style={{ marginBottom: 10, background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>ANTIGÜEDAD LABORAL</div>
+                        <div style={{ fontSize: 13, fontWeight: 900, color: nosis.antiguedadLaboral >= 6 ? C.green : C.gold }}>{nosis.antiguedadLaboral} MESES</div>
+                      </div>
+                    )}
+                    <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>COMPORTAMIENTO CREDITICIO</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
+                      {[
+                        ['CHEQUES S/FONDOS 6M', nosis.cheques6mCant, nosis.cheques6mCant > 0 ? C.red : C.green],
+                        ['MONTO CHEQUES 6M', nosis.cheques6mMonto || '$0', nosis.cheques6mCant > 0 ? C.red : C.text2],
+                        ['CONCURSOS/QUIEBRAS 24M', nosis.concursos24m, nosis.concursos24m > 0 ? C.red : C.green],
+                        ['COMPROMISO MENSUAL', nosis.compromisoMensual || 'S/D', C.text2],
+                        ['DEUDA FISCAL AFIP', nosis.deudaFiscal === 'SI' ? 'SÍ' : nosis.deudaFiscal === 'NO' ? 'NO' : 'S/D', nosis.deudaFiscal === 'SI' ? C.red : C.green],
+                        ['CONSULTAS ÚLTIMOS 12M', nosis.consultas12m, nosis.consultas12m > 10 ? C.gold : C.text2],
+                      ].map(([l, v, color]) => (
+                        <div key={l} style={{ background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
+                          <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{l}</div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color: color || C.text }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>REFERENCIAS Y CONTACTO</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                      {[
+                        ['REFERENCIAS COMERCIALES', nosis.refVigCant || '0', nosis.refVigCant > 0 ? C.green : C.text3],
+                        ['TELÉFONO AFIP', nosis.telNro ? `(${nosis.telCodArea}) ${nosis.telNro}` : 'S/D', nosis.telNro ? C.text : C.text3],
+                      ].map(([l, v, color]) => (
+                        <div key={l} style={{ background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
+                          <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{l}</div>
+                          <div style={{ fontSize: 13, fontWeight: 900, color }}>{v}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {(nosis.domCalle || nosis.domLoc) && (
+                      <div style={{ marginTop: 6, background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
+                        <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>DOMICILIO FISCAL AFIP</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
+                          {[nosis.domCalle, nosis.domNro, nosis.domPiso && `Piso ${nosis.domPiso}`, nosis.domDto && `Dto ${nosis.domDto}`].filter(Boolean).join(' ')}
+                          {nosis.domLoc && ` — ${nosis.domLoc}`}{nosis.domProv && `, ${nosis.domProv}`}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 12, color: C.text3, fontWeight: 400 }}>{nosis?.error || 'Error al consultar Nosis'}</div>
+                )}
+              </Card>
+            </div>
+
+            {/* Botón volver a consultar */}
+            <div style={{ textAlign: 'right', marginBottom: 16 }}>
+              <Btn onClick={consultar} disabled={loading} variant="sec" style={{ fontSize: 11 }}>
+                {loading ? 'CONSULTANDO...' : '↻ VOLVER A CONSULTAR'}
+              </Btn>
+            </div>
+
+            {/* Resolución */}
+            <Card style={{ padding: 24 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>RESOLUCIÓN DEL ANALISTA</div>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>OBSERVACIONES Y FUNDAMENTO</label>
+                <textarea value={obs} onChange={e => setObs(e.target.value)}
+                  style={{ width: '100%', minHeight: 90, padding: '10px 14px', border: `1.5px solid ${C.border2}`, borderRadius: 8, fontSize: 13, color: C.text, background: 'rgba(255,255,255,0.05)', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+                  placeholder="FUNDAMENTO DEL ANÁLISIS CREDITICIO..." />
+              </div>
+              {!conf ? (
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <Btn onClick={() => setConf('aprobado')} variant="success" style={{ flex: 1 }} disabled={!eval_}>✓ PRE-APROBAR — ENVIAR LINK AL CLIENTE</Btn>
+                  <Btn onClick={() => setConf('rechazado')} variant="danger" style={{ flex: 1 }} disabled={!eval_}>✕ RECHAZAR SOLICITUD</Btn>
+                </div>
+              ) : (
+                <div style={{ background: conf === 'aprobado' ? C.greenL : C.redL, borderRadius: 10, padding: 18, border: `1px solid ${conf === 'aprobado' ? C.greenB : C.redB}` }}>
+                  <div style={{ fontWeight: 700, marginBottom: 12, color: conf === 'aprobado' ? C.green : C.red, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {conf === 'aprobado' ? '¿CONFIRMAR PRE-APROBACIÓN Y ENVÍO DE LINK AL CLIENTE?' : '¿CONFIRMAR RECHAZO DE LA SOLICITUD?'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <Btn onClick={() => resolver(conf)} variant={conf === 'aprobado' ? 'success' : 'danger'} style={{ flex: 1 }} disabled={enviando}>
+                      {enviando ? 'PROCESANDO...' : 'CONFIRMAR'}
+                    </Btn>
+                    <Btn onClick={() => setConf(null)} variant="sec" style={{ flex: 1 }}>CANCELAR</Btn>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
