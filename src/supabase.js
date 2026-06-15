@@ -4,6 +4,7 @@ const SUPABASE_KEY = process.env.REACT_APP_SUPABASE_KEY;
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
  
 export const db = {
+  supabase,
   async getLineas() {
     const { data, error } = await supabase.from('lineas').select('*').order('created_at');
     if (error) throw error;
