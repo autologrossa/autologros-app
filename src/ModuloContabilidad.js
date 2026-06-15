@@ -54,6 +54,11 @@ export default function ModuloContabilidad({ user }) {
     { cuenta_id: '', debe: '', haber: '' },
   ]);
   const [guardando, setGuardando] = useState(false);
+  const [editandoAsiento, setEditandoAsiento] = useState(null);
+  const [editLineas, setEditLineas] = useState([]);
+  const [editDesc, setEditDesc] = useState('');
+  const [editFecha, setEditFecha] = useState('');
+  const [editRef, setEditRef] = useState('');
 
   // Estados para nueva cuenta
   const [nuevaCuenta, setNuevaCuenta] = useState(false);
@@ -148,6 +153,54 @@ export default function ModuloContabilidad({ user }) {
       alert('Error al guardar el asiento');
     }
     setGuardando(false);
+  }
+
+  // ── Eliminar asiento ─────────────────────────────────────────────────────
+  async function eliminarAsiento(id) {
+    if (!window.confirm('¿ELIMINAR ESTE ASIENTO? Esta acción no se puede deshacer.')) return;
+    await db.supabase.from('asiento_lineas').delete().eq('asiento_id', id);
+    await db.supabase.from('asientos').delete().eq('id', id);
+    await cargar();
+  }
+
+  // ── Editar asiento ────────────────────────────────────────────────────────
+  function abrirEdicion(a) {
+    const ls = lineas.filter(l => l.asiento_id === a.id);
+    setEditandoAsiento(a);
+    setEditDesc(a.descripcion);
+    setEditFecha(a.fecha);
+    setEditRef(a.referencia || '');
+    setEditLineas(ls.map(l => ({ ...l, debe: l.debe || '', haber: l.haber || '' })));
+  }
+
+  async function guardarEdicion() {
+    if (!editDesc) return;
+    const lineasValidas = editLineas.filter(l => l.cuenta_id && (parseFloat(l.debe) > 0 || parseFloat(l.haber) > 0));
+    const totalDebe = lineasValidas.reduce((a,l) => a+(parseFloat(l.debe)||0), 0);
+    const totalHaber = lineasValidas.reduce((a,l) => a+(parseFloat(l.haber)||0), 0);
+    if (Math.abs(totalDebe - totalHaber) > 0.01) {
+      alert(`Asiento desbalanceado. Debe: ${totalDebe} / Haber: ${totalHaber}`);
+      return;
+    }
+    // Actualizar cabecera
+    await db.supabase.from('asientos').update({
+      fecha: editFecha,
+      descripcion: editDesc,
+      referencia: editRef || null,
+    }).eq('id', editandoAsiento.id);
+    // Borrar líneas viejas y reinsertar
+    await db.supabase.from('asiento_lineas').delete().eq('asiento_id', editandoAsiento.id);
+    await db.supabase.from('asiento_lineas').insert(
+      lineasValidas.map((l, i) => ({
+        id: `LIN-EDIT-${Date.now()}-${i}`,
+        asiento_id: editandoAsiento.id,
+        cuenta_id: l.cuenta_id,
+        debe: parseFloat(l.debe) || 0,
+        haber: parseFloat(l.haber) || 0,
+      }))
+    );
+    setEditandoAsiento(null);
+    await cargar();
   }
 
   // ── Guardar cuenta ────────────────────────────────────────────────────────
@@ -301,6 +354,77 @@ export default function ModuloContabilidad({ user }) {
   ];
 
   const cuentaSeleccionada = cuentas.find(c => c.id === filtroMayor);
+
+  // ── Modal edición asiento ─────────────────────────────────────────────────
+  if (editandoAsiento) return (
+    <div style={{minHeight:'100vh',background:C.bg2,fontFamily:'system-ui,Arial,sans-serif',padding:28}}>
+      <div style={{maxWidth:860,margin:'0 auto'}}>
+        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:24}}>
+          <button onClick={()=>setEditandoAsiento(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:C.text3}}>←</button>
+          <div style={{fontSize:16,fontWeight:900,color:C.gold,textTransform:'uppercase',letterSpacing:'0.06em'}}>
+            EDITAR ASIENTO N° {String(editandoAsiento.numero||0).padStart(4,'0')}
+          </div>
+        </div>
+        <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:28}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 2fr 1fr',gap:'0 16px',marginBottom:20}}>
+            {[['FECHA',editFecha,setEditFecha,'date'],['DESCRIPCIÓN',editDesc,setEditDesc,'text'],['REFERENCIA',editRef,setEditRef,'text']].map(([lbl,val,set,type])=>(
+              <div key={lbl}>
+                <label style={{display:'block',fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:6}}>{lbl}</label>
+                <input type={type} value={val} onChange={e=>set(e.target.value)}
+                  style={{width:'100%',padding:'9px 12px',border:`1.5px solid ${C.border2}`,borderRadius:8,fontSize:13,color:C.text,background:'rgba(255,255,255,0.05)',fontFamily:'inherit',fontWeight:700,boxSizing:'border-box',outline:'none'}}/>
+              </div>
+            ))}
+          </div>
+          <table style={{width:'100%',borderCollapse:'collapse',marginBottom:14}}>
+            <thead>
+              <tr>{['CUENTA','DEBE','HABER',''].map(h=><th key={h} style={{background:C.bg3,color:C.text2,fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',padding:'8px 12px',textAlign:'left',borderBottom:`1px solid ${C.border}`}}>{h}</th>)}</tr>
+            </thead>
+            <tbody>
+              {editLineas.map((l,i)=>(
+                <tr key={i}>
+                  <td style={{padding:'6px 8px'}}>
+                    <select value={l.cuenta_id} onChange={e=>{const nl=[...editLineas];nl[i]={...nl[i],cuenta_id:e.target.value};setEditLineas(nl);}}
+                      style={{width:'100%',padding:'8px 10px',border:`1.5px solid ${C.border2}`,borderRadius:6,fontSize:12,color:C.text,background:C.bg3,fontFamily:'inherit',fontWeight:700,outline:'none'}}>
+                      <option value="">SELECCIONAR...</option>
+                      {['activo','pasivo','patrimonio','ingreso','egreso'].map(tipo=>(
+                        <optgroup key={tipo} label={TIPO_LABELS[tipo]}>
+                          {cuentas.filter(c=>c.tipo===tipo&&c.activa).map(c=><option key={c.id} value={c.id}>{c.codigo} — {c.nombre}</option>)}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={{padding:'6px 8px'}}>
+                    <input type="number" value={l.debe} onChange={e=>{const nl=[...editLineas];nl[i]={...nl[i],debe:e.target.value};setEditLineas(nl);}} placeholder="0.00"
+                      style={{width:'100%',padding:'8px 10px',border:`1.5px solid ${C.border2}`,borderRadius:6,fontSize:13,color:C.blue,background:'rgba(255,255,255,0.05)',fontFamily:'inherit',fontWeight:700,outline:'none',boxSizing:'border-box'}}/>
+                  </td>
+                  <td style={{padding:'6px 8px'}}>
+                    <input type="number" value={l.haber} onChange={e=>{const nl=[...editLineas];nl[i]={...nl[i],haber:e.target.value};setEditLineas(nl);}} placeholder="0.00"
+                      style={{width:'100%',padding:'8px 10px',border:`1.5px solid ${C.border2}`,borderRadius:6,fontSize:13,color:C.gold,background:'rgba(255,255,255,0.05)',fontFamily:'inherit',fontWeight:700,outline:'none',boxSizing:'border-box'}}/>
+                  </td>
+                  <td style={{padding:'6px 8px',textAlign:'center'}}>
+                    {editLineas.length > 2 && <button onClick={()=>setEditLineas(editLineas.filter((_,j)=>j!==i))} style={{background:C.redL,color:C.red,border:`1px solid ${C.redB}`,borderRadius:6,padding:'6px 10px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>×</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {(()=>{
+            const td=editLineas.reduce((a,l)=>a+(parseFloat(l.debe)||0),0);
+            const th=editLineas.reduce((a,l)=>a+(parseFloat(l.haber)||0),0);
+            const bal=Math.abs(td-th)<0.01;
+            return td>0||th>0?<div style={{padding:'8px 14px',borderRadius:8,marginBottom:14,background:bal?C.greenL:C.redL,border:`1px solid ${bal?C.greenB:C.redB}`,fontSize:11,fontWeight:700,color:bal?C.green:C.red}}>{bal?'✓ ASIENTO BALANCEADO':`⚠️ DIFERENCIA: $${Math.abs(td-th).toFixed(2)}`}</div>:null;
+          })()}
+          <div style={{display:'flex',gap:10,justifyContent:'space-between'}}>
+            <button onClick={()=>setEditLineas([...editLineas,{cuenta_id:'',debe:'',haber:''}])} style={{background:'rgba(255,255,255,0.05)',color:C.text2,border:`1px solid ${C.border}`,padding:'8px 16px',borderRadius:8,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>+ LÍNEA</button>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={()=>setEditandoAsiento(null)} style={{background:'rgba(255,255,255,0.06)',color:C.text2,border:`1px solid ${C.border}`,padding:'9px 20px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>CANCELAR</button>
+              <button onClick={guardarEdicion} style={{background:'#1A6B3C',color:'#fff',border:'none',padding:'9px 20px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>✓ GUARDAR CAMBIOS</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div>
