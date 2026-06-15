@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import FirmaCliente from './FirmaCliente';
@@ -1775,3 +1774,4 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
     </div>
   );
 }
+
