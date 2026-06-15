@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { db } from './supabase';
-
+ 
 // ── Cálculos financieros ──────────────────────────────────────────────────────
 const IVA = 1.21;
 function calcTEA(tna) { return ((Math.pow(1 + (tna/100/12)*IVA, 12) - 1) * 100); }
@@ -18,7 +19,7 @@ function calcDesembolso(monto, gastos) { return monto - monto*(gastos/100)*IVA; 
 const fmt = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n);
 const fmtN = n => new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(n);
 const fmtP = n => `${parseFloat(n).toFixed(2)}%`;
-
+ 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
   bg0:'#030F1E', bg1:'#06172E', bg2:'#071829', bg3:'#0A1F3A', bg4:'#0D2540',
@@ -28,7 +29,7 @@ const C = {
   blue:'#4A9AE0', green:'#4AE08A', greenL:'rgba(74,224,138,0.08)', greenB:'rgba(74,224,138,0.15)',
   red:'#E05050', redL:'rgba(224,80,80,0.08)', redB:'rgba(224,80,80,0.15)',
 };
-
+ 
 // ── Componentes base ──────────────────────────────────────────────────────────
 const Logo = ({size=34}) => (
   <svg width={size} height={size} viewBox="0 0 44 44" fill="none">
@@ -37,9 +38,9 @@ const Logo = ({size=34}) => (
     <text x="22" y="27" textAnchor="middle" fill={C.gold} fontSize="16" fontWeight="900" fontFamily="Helvetica Neue,Arial,sans-serif">$</text>
   </svg>
 );
-
+ 
 function Card({children,style}){ return <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,...style}}>{children}</div>; }
-
+ 
 function Inp({label,type='text',value,onChange,placeholder,req,step,hint}){
   return (
     <div style={{marginBottom:16}}>
@@ -57,7 +58,7 @@ function Inp({label,type='text',value,onChange,placeholder,req,step,hint}){
     </div>
   );
 }
-
+ 
 function Sel({label,value,onChange,options,req}){
   return (
     <div style={{marginBottom:16}}>
@@ -73,7 +74,7 @@ function Sel({label,value,onChange,options,req}){
     </div>
   );
 }
-
+ 
 function Btn({onClick,children,variant='primary',disabled,style,full}){
   const vs={
     primary:{background:'#1A4F8A',color:'#fff',border:'none'},
@@ -93,7 +94,7 @@ function Btn({onClick,children,variant='primary',disabled,style,full}){
     </button>
   );
 }
-
+ 
 function Badge({text,type}){
   const c={
     pendiente:[C.goldL,C.gold,C.goldB],
@@ -110,7 +111,7 @@ function Badge({text,type}){
     </span>
   );
 }
-
+ 
 function Hdr({title,user,onLogout}){
   return (
     <div style={{background:C.bg1,borderBottom:`1px solid ${C.border}`,padding:'14px 24px',
@@ -129,7 +130,7 @@ function Hdr({title,user,onLogout}){
     </div>
   );
 }
-
+ 
 function Tabs({tabs,active,onChange}){
   return (
     <div style={{background:C.bg3,borderBottom:`1px solid ${C.border}`,padding:'0 24px',display:'flex',gap:4}}>
@@ -145,12 +146,12 @@ function Tabs({tabs,active,onChange}){
     </div>
   );
 }
-
+ 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function Login({onLogin}){
   const [cod,setCod]=useState('');const [pw,setPw]=useState('');
   const [err,setErr]=useState('');const [loading,setLoading]=useState(false);
-
+ 
   async function go(){
     setLoading(true);setErr('');
     try{
@@ -159,7 +160,7 @@ function Login({onLogin}){
     }catch{setErr('ERROR DE CONEXIÓN. INTENTÁ DE NUEVO.');}
     setLoading(false);
   }
-
+ 
   return (
     <div style={{minHeight:'100vh',background:`linear-gradient(160deg,${C.bg0} 0%,${C.bg1} 40%,#071F1A 100%)`,
       display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
@@ -181,14 +182,14 @@ function Login({onLogin}){
     </div>
   );
 }
-
+ 
 // ── ADMIN ─────────────────────────────────────────────────────────────────────
 function Admin({user,onLogout}){
   const [tab,setTab]=useState('lineas');
   const [lineas,setLineas]=useState([]);const [loading,setLoading]=useState(true);
   const [editando,setEditando]=useState(null);const [nueva,setNueva]=useState(false);
   const [embajadores,setEmbajadores]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);
-
+ 
   useEffect(()=>{cargar();},[]);
   async function cargar(){
     setLoading(true);
@@ -201,10 +202,10 @@ function Admin({user,onLogout}){
   async function eliminarLinea(id){if(!window.confirm('¿ELIMINAR ESTA LÍNEA?'))return;await db.deleteLinea(id);await cargar();}
   async function guardarEmb(e){await db.saveEmbajador(e);await cargar();setNuevoEmb(false);}
   async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE EMBAJADOR?'))return;await db.deleteEmbajador(id);await cargar();}
-
+ 
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
   if(nuevoEmb) return <FormEmbajador onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
-
+ 
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
@@ -302,23 +303,23 @@ function Admin({user,onLogout}){
     </div>
   );
 }
-
+ 
 // ── FORM LÍNEA ────────────────────────────────────────────────────────────────
 function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
   const nuevo=!linea;
   const [f,setF]=useState(linea?{...linea,plazosStr:(linea.plazos||[]).join(', '),docsReqStr:(linea.docsReq||[]).join('\n'),docsOpcStr:(linea.docsOpc||[]).join('\n')}
     :{id:`linea-${Date.now()}`,nombre:'',descripcion:'',activa:true,montoMin:'',montoMax:'',tna:'',seguro:'',comisiones:'',gastos:'',plazosStr:'',docsReqStr:'',docsOpcStr:''});
-
+ 
   const tea=f.tna?calcTEA(parseFloat(f.tna)):null;
   const cft=(f.tna&&f.seguro!==''&&f.comisiones!==''&&f.gastos!=='')?calcCFT(parseFloat(f.tna),parseFloat(f.seguro||0),parseFloat(f.comisiones||0),parseFloat(f.gastos||0)):null;
   const gastoEjemplo=f.gastos?1000000*(parseFloat(f.gastos)/100)*IVA:0;
-
+ 
   function toLinea(){return{...f,montoMin:parseFloat(f.montoMin),montoMax:parseFloat(f.montoMax),tna:parseFloat(f.tna),
     seguro:parseFloat(f.seguro||0),comisiones:parseFloat(f.comisiones||0),gastos:parseFloat(f.gastos||0),
     plazos:f.plazosStr.split(',').map(x=>parseInt(x.trim())).filter(Boolean),
     docsReq:f.docsReqStr.split('\n').map(x=>x.trim()).filter(Boolean),
     docsOpc:f.docsOpcStr.split('\n').map(x=>x.trim()).filter(Boolean)};}
-
+ 
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
@@ -339,7 +340,7 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
               <span style={{fontSize:11,fontWeight:700,color:f.activa?C.green:C.text3,letterSpacing:'0.06em',textTransform:'uppercase'}}>{f.activa?'ACTIVA — VISIBLE PARA EMBAJADORES':'INACTIVA'}</span>
             </div>
           </div>
-
+ 
           <div style={{background:'rgba(255,255,255,0.03)',borderRadius:10,padding:18,border:`1px solid ${C.border}`,marginBottom:20}}>
             <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14}}>TASAS Y COSTOS — TODOS CON IVA 21%</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:'0 12px'}}>
@@ -379,7 +380,7 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
               </div>
             )}
           </div>
-
+ 
           <div style={{marginBottom:16}}>
             <label style={{display:'block',fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>DOCUMENTOS OBLIGATORIOS *</label>
             <textarea value={f.docsReqStr} onChange={e=>setF({...f,docsReqStr:e.target.value})}
@@ -404,7 +405,7 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
     </div>
   );
 }
-
+ 
 // ── FORM EMBAJADOR ────────────────────────────────────────────────────────────
 function FormEmbajador({onGuardar,onCancelar,user,onLogout}){
   const [f,setF]=useState({nombre:'',apellido:'',codigo:'',zona:'',email:'',telefono:'',password:''});
@@ -436,9 +437,162 @@ function FormEmbajador({onGuardar,onCancelar,user,onLogout}){
     </div>
   );
 }
-
+ 
+// ── PANEL INFORMES (BCRA + NOSIS de solicitudes ya analizadas) ────────────────
+function PanelInformes({sols}){
+  const [sel,setSel]=useState(null);
+  const conInformes=sols.filter(s=>s.bcra_data||s.nosis_data);
+  const colorSit=sit=>sit===1?C.green:sit===2?C.gold:C.red;
+ 
+  if(sel){
+    const s=sel;
+    const cli=s.cliente||{};
+    const bcra=s.bcra_data;
+    const nosis=s.nosis_data;
+    return(
+      <div>
+        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:22}}>
+          <button onClick={()=>setSel(null)} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:C.text3}}>←</button>
+          <div>
+            <div style={{fontSize:16,fontWeight:900,color:C.text,letterSpacing:'0.04em',textTransform:'uppercase'}}>{cli.nombre} {cli.apellido}</div>
+            <div style={{fontSize:11,color:C.text3,marginTop:2,fontWeight:400}}>{s.id} · CUIL {cli.cuil} · Analizado: {s.fecha_res||s.fecha}</div>
+          </div>
+          <div style={{marginLeft:'auto'}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></div>
+        </div>
+ 
+        {/* Resumen crédito */}
+        <Card style={{padding:18,marginBottom:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
+            {[['LÍNEA',s.linea_nombre],['MONTO',fmt(s.monto)],['PLAZO',`${s.plazo} M`],['CUOTA',fmt(s.cuota)]].map(([l,v])=>(
+              <div key={l} style={{background:C.bg3,borderRadius:8,padding:'10px 12px',border:`1px solid ${C.border}`}}>
+                <div style={{fontSize:9,color:C.text3,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:3}}>{l}</div>
+                <div style={{fontSize:13,fontWeight:900,color:C.text}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {s.obs&&<div style={{marginTop:14,padding:'10px 14px',background:'rgba(255,255,255,0.03)',borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,color:C.text2,fontWeight:400,whiteSpace:'pre-line'}}>{s.obs}</div>}
+        </Card>
+ 
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          {/* BCRA */}
+          <Card style={{padding:20}}>
+            <div style={{fontSize:12,fontWeight:900,color:C.blue,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>CENTRAL DE DEUDORES BCRA</div>
+            {bcra?.ok?(
+              <>
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
+                  <div style={{width:48,height:48,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:`${colorSit(bcra.peorSit)}20`,border:`2px solid ${colorSit(bcra.peorSit)}`}}>
+                    <span style={{fontSize:20,fontWeight:900,color:colorSit(bcra.peorSit)}}>{bcra.peorSit}</span>
+                  </div>
+                  <div>
+                    <div style={{fontSize:10,color:C.text3,textTransform:'uppercase',letterSpacing:'0.06em'}}>PEOR SITUACIÓN</div>
+                    <div style={{fontSize:13,fontWeight:700,color:colorSit(bcra.peorSit)}}>
+                      {bcra.peorSit===1?'SITUACIÓN NORMAL':bcra.peorSit===2?'RIESGO BAJO':bcra.peorSit===3?'CON PROBLEMAS':bcra.peorSit===4?'ALTO RIESGO':'IRRECUPERABLE'}
+                    </div>
+                  </div>
+                </div>
+                <div style={{fontSize:11,color:C.text2,fontWeight:400,marginBottom:8}}>{bcra.cantEntidades} entidad(es) informante(s)</div>
+                {(bcra.deudas||[]).slice(0,4).map((d,i)=>(
+                  <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'5px 0',borderBottom:`1px solid ${C.border}`,fontSize:11}}>
+                    <span style={{color:C.text2,fontWeight:400}}>{d.entidad}</span>
+                    <div style={{display:'flex',gap:8}}>
+                      <span style={{color:colorSit(d.situacion),fontWeight:700}}>SIT {d.situacion}</span>
+                      {d.monto&&<span style={{color:C.text,fontWeight:700}}>{fmt(d.monto*1000)}</span>}
+                    </div>
+                  </div>
+                ))}
+              </>
+            ):bcra?(
+              <div style={{fontSize:12,color:C.text3,fontWeight:400}}>No figura en la Central de Deudores del BCRA</div>
+            ):(
+              <div style={{fontSize:12,color:C.text3,fontWeight:400,fontStyle:'italic'}}>Informe BCRA no disponible para esta solicitud</div>
+            )}
+          </Card>
+ 
+          {/* Nosis */}
+          <Card style={{padding:20}}>
+            <div style={{fontSize:12,fontWeight:900,color:C.gold,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>BUREAU NOSIS</div>
+            {nosis?.ok?(
+              <div>
+                <div style={{fontSize:9,color:C.text3,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>SITUACIÓN LABORAL (AFIP)</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
+                  {[['EMPLEADO REL. DEP.',nosis.esEmpleado],['MONOTRIBUTISTA',nosis.esMonotributista],['AUTÓNOMO',nosis.esAutonomo],['JUBILADO',nosis.esJubilado]].map(([l,v])=>(
+                    <div key={l} style={{background:C.bg3,borderRadius:7,padding:'7px 10px',border:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:8,color:C.text3,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:2}}>{l}</div>
+                      <div style={{fontSize:13,fontWeight:900,color:v==='SI'?C.green:v==='NO'?C.red:C.text3}}>{v||'N/D'}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontSize:9,color:C.text3,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>COMPORTAMIENTO CREDITICIO</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+                  {[
+                    ['CHEQUES S/FONDOS 6M',nosis.cheques6mCant,nosis.cheques6mCant>0?C.red:C.green],
+                    ['CONCURSOS/QUIEBRAS 24M',nosis.concursos24m,nosis.concursos24m>0?C.red:C.green],
+                    ['DEUDA FISCAL AFIP',nosis.deudaFiscal==='SI'?'SÍ':nosis.deudaFiscal==='NO'?'NO':'S/D',nosis.deudaFiscal==='SI'?C.red:C.green],
+                    ['COMPROMISO MENSUAL',nosis.compromisoMensual||'S/D',C.text2],
+                    ['ANTIGÜEDAD LABORAL',nosis.antiguedadLaboral!=null?`${nosis.antiguedadLaboral} M`:'S/D',nosis.antiguedadLaboral>=6?C.green:C.gold],
+                    ['CONSULTAS 12M',nosis.consultas12m,nosis.consultas12m>10?C.gold:C.text2],
+                  ].map(([l,v,color])=>(
+                    <div key={l} style={{background:C.bg3,borderRadius:7,padding:'7px 10px',border:`1px solid ${C.border}`}}>
+                      <div style={{fontSize:8,color:C.text3,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:2}}>{l}</div>
+                      <div style={{fontSize:13,fontWeight:900,color:color||C.text}}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ):nosis?(
+              <div style={{fontSize:12,color:C.text3,fontWeight:400}}>{nosis.error||'Error en consulta Nosis'}</div>
+            ):(
+              <div style={{fontSize:12,color:C.text3,fontWeight:400,fontStyle:'italic'}}>Informe Nosis no disponible para esta solicitud</div>
+            )}
+          </Card>
+        </div>
+      </div>
+    );
+  }
+ 
+  return(
+    <div>
+      <div style={{fontSize:18,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:6}}>INFORMES CREDITICIOS</div>
+      <div style={{fontSize:11,color:C.text3,marginBottom:20,fontWeight:400}}>{conInformes.length} solicitud(es) con informe BCRA / Nosis disponible</div>
+      {!conInformes.length?(
+        <Card style={{padding:60,textAlign:'center'}}>
+          <div style={{fontSize:36,marginBottom:12}}>📋</div>
+          <div style={{color:C.text3,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}>AÚN NO HAY SOLICITUDES ANALIZADAS CON BCRA / NOSIS</div>
+          <div style={{color:C.text3,fontSize:11,marginTop:8,fontWeight:400}}>Los informes aparecen aquí cuando el analista completa el Módulo B en una solicitud pendiente.</div>
+        </Card>
+      ):conInformes.map(s=>{
+        const cli=s.cliente||{};
+        const bcra=s.bcra_data;
+        const semaforo=bcra?.ok?(bcra.peorSit>=3?'🔴':bcra.peorSit===2?'🟡':'🟢'):'⚪';
+        return(
+          <Card key={s.id} style={{padding:18,marginBottom:10,cursor:'pointer',borderLeft:`3px solid ${s.estado==='aprobado'?C.green:s.estado==='rechazado'?C.red:C.gold}`}} onClick={()=>setSel(s)}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{display:'flex',alignItems:'center',gap:14}}>
+                <span style={{fontSize:22}}>{semaforo}</span>
+                <div>
+                  <div style={{fontWeight:900,fontSize:13,color:C.text,textTransform:'uppercase',letterSpacing:'0.03em'}}>{cli.nombre} {cli.apellido}</div>
+                  <div style={{fontSize:11,color:C.text2,marginTop:3,fontWeight:400}}>CUIL {cli.cuil} · {s.linea_nombre} · {fmt(s.monto)} · {s.fecha_res||s.fecha}</div>
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <div style={{display:'flex',gap:8}}>
+                  {s.bcra_data&&<span style={{fontSize:10,background:'rgba(74,154,224,0.15)',color:C.blue,borderRadius:6,padding:'3px 10px',fontWeight:700,border:'1px solid rgba(74,154,224,0.3)'}}>BCRA</span>}
+                  {s.nosis_data&&<span style={{fontSize:10,background:C.goldL,color:C.gold,borderRadius:6,padding:'3px 10px',fontWeight:700,border:`1px solid ${C.goldB}`}}>NOSIS</span>}
+                </div>
+                <Badge text={s.estado_texto||s.estado} type={s.estado}/>
+                <span style={{color:C.text3,fontSize:16}}>›</span>
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+ 
 // ── ANALISTA ──────────────────────────────────────────────────────────────────
 function Analista({user,onLogout}){
+  const [tab,setTab]=useState('solicitudes');
   const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);
   useEffect(()=>{cargar();const iv=setInterval(cargar,15000);return()=>clearInterval(iv);},[]);
   async function cargar(){setSols(await db.getSolicitudes());setLoading(false);}
@@ -446,76 +600,83 @@ function Analista({user,onLogout}){
     await db.updateSolicitud(id,{estado,estado_texto:estado==='aprobado'?'APROBADO — PENDIENTE FIRMA':'RECHAZADO',obs,analista:user.nombre,fecha_res:new Date().toLocaleDateString('es-AR')});
     await cargar();setDetalle(null);
   }
-
-  // Si está en Módulo B
+ 
   if(moduloB) return <ModuloB sol={moduloB} user={user} onVolver={()=>setModuloB(null)} onActualizar={cargar}/>;
+ 
   const list=sols.filter(s=>filtro==='todas'||s.estado===filtro);
   const cnt={p:sols.filter(s=>s.estado==='pendiente').length,a:sols.filter(s=>s.estado==='aprobado').length,r:sols.filter(s=>s.estado==='rechazado').length};
-
   const rowColor={aprobado:'rgba(74,224,138,0.04)',rechazado:'rgba(224,80,80,0.04)',pendiente:'transparent'};
   const rowBorder={aprobado:C.green,rechazado:C.red,pendiente:C.gold};
-
+ 
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL DE ANÁLISIS" user={user} onLogout={onLogout}/>
+      <Tabs tabs={[['solicitudes','SOLICITUDES'],['informes','INFORMES BCRA / NOSIS']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:1100,margin:'0 auto'}}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:24}}>
-          {[['PENDIENTES',cnt.p,C.gold,C.goldL,C.goldB],['APROBADAS',cnt.a,C.green,C.greenL,C.greenB],['RECHAZADAS',cnt.r,C.red,C.redL,C.redB]].map(([l,n,color,bg,b])=>(
-            <div key={l} style={{background:bg,borderRadius:12,padding:18,border:`1px solid ${b}`}}>
-              <div style={{fontSize:34,fontWeight:900,color,lineHeight:1}}>{n}</div>
-              <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color,marginTop:6}}>{l}</div>
+ 
+        {tab==='solicitudes'&&(
+          <>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:24}}>
+              {[['PENDIENTES',cnt.p,C.gold,C.goldL,C.goldB],['APROBADAS',cnt.a,C.green,C.greenL,C.greenB],['RECHAZADAS',cnt.r,C.red,C.redL,C.redB]].map(([l,n,color,bg,b])=>(
+                <div key={l} style={{background:bg,borderRadius:12,padding:18,border:`1px solid ${b}`}}>
+                  <div style={{fontSize:34,fontWeight:900,color,lineHeight:1}}>{n}</div>
+                  <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.1em',color,marginTop:6}}>{l}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div style={{display:'flex',gap:8,marginBottom:18}}>
-          {[['todas','TODAS'],['pendiente','PENDIENTES'],['aprobado','APROBADAS'],['rechazado','RECHAZADAS']].map(([k,l])=>(
-            <button key={k} onClick={()=>setFiltro(k)}
-              style={{padding:'8px 16px',borderRadius:20,fontSize:10,fontWeight:700,
-                background:filtro===k?C.gold:'rgba(255,255,255,0.05)',color:filtro===k?'#fff':C.text2,
-                border:`1px solid ${filtro===k?C.gold:C.border}`,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.08em',textTransform:'uppercase'}}>
-              {l}
-            </button>
-          ))}
-        </div>
-        {loading?<div style={{textAlign:'center',padding:60,color:C.text3}}>CARGANDO...</div>:(
-          <div style={{overflowX:'auto'}}>
-            <table style={{width:'100%',borderCollapse:'collapse'}}>
-              <thead>
-                <tr>
-                  {['CLIENTE','LÍNEA / MONTO','CUOTA','EMBAJADOR','FECHA','ESTADO','OBSERVACIÓN'].map(h=>(
-                    <th key={h} style={{background:C.bg3,color:C.text2,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'10px 14px',textAlign:'left',borderBottom:`1px solid ${C.border}`}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {list.map(s=>(
-                  <tr key={s.id} onClick={()=>s.estado==='pendiente'?setModuloB(s):setDetalle(s)}
-                    style={{background:rowColor[s.estado],cursor:'pointer',borderLeft:`3px solid ${rowBorder[s.estado]}`}}>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
-                      <div style={{fontWeight:900,color:s.estado==='rechazado'?C.red:C.text,textTransform:'uppercase',letterSpacing:'0.03em',fontSize:12}}>{s.cliente?.nombre} {s.cliente?.apellido}</div>
-                      <div style={{fontSize:10,color:C.text3,fontWeight:400,marginTop:2}}>DNI {s.cliente?.dni}</div>
-                    </td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
-                      <div style={{color:s.estado==='rechazado'?C.text2:C.text,fontWeight:700,fontSize:12,textTransform:'uppercase'}}>{s.linea_nombre}</div>
-                      <div style={{fontSize:11,color:C.text3,fontWeight:400}}>{fmt(s.monto)} · {s.plazo}M</div>
-                    </td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,fontWeight:900,color:s.estado==='rechazado'?C.red:s.estado==='aprobado'?C.green:C.gold,fontSize:13}}>{fmt(s.cuota)}</td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.emb_nombre}</td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.fecha}</td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></td>
-                    <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:s.estado==='rechazado'?C.red:C.text3,fontSize:11,fontWeight:400,maxWidth:200}}>{s.obs||'—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <div style={{display:'flex',gap:8,marginBottom:18}}>
+              {[['todas','TODAS'],['pendiente','PENDIENTES'],['aprobado','APROBADAS'],['rechazado','RECHAZADAS']].map(([k,l])=>(
+                <button key={k} onClick={()=>setFiltro(k)}
+                  style={{padding:'8px 16px',borderRadius:20,fontSize:10,fontWeight:700,
+                    background:filtro===k?C.gold:'rgba(255,255,255,0.05)',color:filtro===k?'#fff':C.text2,
+                    border:`1px solid ${filtro===k?C.gold:C.border}`,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.08em',textTransform:'uppercase'}}>
+                  {l}
+                </button>
+              ))}
+            </div>
+            {loading?<div style={{textAlign:'center',padding:60,color:C.text3}}>CARGANDO...</div>:(
+              <div style={{overflowX:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr>
+                      {['CLIENTE','LÍNEA / MONTO','CUOTA','EMBAJADOR','FECHA','ESTADO','OBSERVACIÓN'].map(h=>(
+                        <th key={h} style={{background:C.bg3,color:C.text2,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'10px 14px',textAlign:'left',borderBottom:`1px solid ${C.border}`}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.map(s=>(
+                      <tr key={s.id} onClick={()=>s.estado==='pendiente'?setModuloB(s):setDetalle(s)}
+                        style={{background:rowColor[s.estado],cursor:'pointer',borderLeft:`3px solid ${rowBorder[s.estado]}`}}>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
+                          <div style={{fontWeight:900,color:s.estado==='rechazado'?C.red:C.text,textTransform:'uppercase',letterSpacing:'0.03em',fontSize:12}}>{s.cliente?.nombre} {s.cliente?.apellido}</div>
+                          <div style={{fontSize:10,color:C.text3,fontWeight:400,marginTop:2}}>DNI {s.cliente?.dni}</div>
+                        </td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
+                          <div style={{color:s.estado==='rechazado'?C.text2:C.text,fontWeight:700,fontSize:12,textTransform:'uppercase'}}>{s.linea_nombre}</div>
+                          <div style={{fontSize:11,color:C.text3,fontWeight:400}}>{fmt(s.monto)} · {s.plazo}M</div>
+                        </td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,fontWeight:900,color:s.estado==='rechazado'?C.red:s.estado==='aprobado'?C.green:C.gold,fontSize:13}}>{fmt(s.cuota)}</td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.emb_nombre}</td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.fecha}</td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:s.estado==='rechazado'?C.red:C.text3,fontSize:11,fontWeight:400,maxWidth:200}}>{s.obs||'—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
+ 
+        {tab==='informes'&&<PanelInformes sols={sols}/>}
       </div>
       {detalle&&<Modal sol={detalle} onClose={()=>setDetalle(null)} onResolver={resolver}/>}
     </div>
   );
 }
-
+ 
 // ── EMBAJADOR ─────────────────────────────────────────────────────────────────
 function Embajador({user,onLogout}){
   const [tab,setTab]=useState('nueva');const [lineas,setLineas]=useState([]);const [sols,setSols]=useState([]);const [detalle,setDetalle]=useState(null);
@@ -549,30 +710,30 @@ function Embajador({user,onLogout}){
     </div>
   );
 }
-
+ 
 // ── NUEVA SOLICITUD ───────────────────────────────────────────────────────────
 function NuevaSol({user,lineas,onEnviada}){
   const [paso,setPaso]=useState(1);const [lid,setLid]=useState('');const [plazo,setPlazo]=useState('');
   const [s1,setS1]=useState('');const [s2,setS2]=useState('');const [s3,setS3]=useState('');
   const [monto,setMonto]=useState('');const [f,setF]=useState({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});
   const [docs,setDocs]=useState({});const [env,setEnv]=useState(false);const [ok,setOk]=useState(false);
-
+ 
   const linea=lineas.find(l=>l.id===lid);
   const prom=s1&&s2&&s3?(parseFloat(s1)+parseFloat(s2)+parseFloat(s3))/3:0;
   const cmax=prom*0.30;
   const cuota=linea&&monto&&plazo?calcCuota(parseFloat(monto),linea.tna,linea.seguro||0,linea.comisiones||0,parseInt(plazo)):0;
   const desembolso=linea&&monto?calcDesembolso(parseFloat(monto),linea.gastos||0):0;
   const capOK=cmax>0&&cuota>0&&cuota<=cmax;
-
+ 
   async function enviar(){
     setEnv(true);
     await db.saveSolicitud({id:`SOL-${Date.now()}`,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docs),estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS'});
     setEnv(false);setOk(true);
   }
   const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});};
-
+ 
   if(ok) return <Card style={{padding:60,textAlign:'center'}}><div style={{fontSize:52,marginBottom:16}}>✅</div><div style={{fontSize:20,fontWeight:900,color:C.green,marginBottom:8,letterSpacing:'0.06em',textTransform:'uppercase'}}>SOLICITUD ENVIADA</div><div style={{color:C.text2,marginBottom:28,fontWeight:400}}>Enviada al equipo de análisis.</div><Btn onClick={reset} variant="ghost">CARGAR OTRA SOLICITUD</Btn></Card>;
-
+ 
   const steps=['LÍNEA Y SIMULACIÓN','DATOS DEL CLIENTE','DOCUMENTACIÓN','CONFIRMAR'];
   return (
     <div>
@@ -587,7 +748,7 @@ function NuevaSol({user,lineas,onEnviada}){
           </div>
         ))}
       </div>
-
+ 
       {paso===1&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:20}}>LÍNEA DE CRÉDITO Y SIMULACIÓN</div>
         {!lineas.length?<div style={{padding:20,background:C.goldL,borderRadius:8,color:C.gold,fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>NO HAY LÍNEAS ACTIVAS. CONTACTÁ AL ADMINISTRADOR.</div>:<>
@@ -633,7 +794,7 @@ function NuevaSol({user,lineas,onEnviada}){
           <Btn onClick={()=>setPaso(2)} disabled={!linea||!monto||!plazo||!s1||!s2||!s3||!capOK}>CONTINUAR →</Btn>
         </div>
       </Card>}
-
+ 
       {paso===2&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:20}}>DATOS DEL CLIENTE</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 20px'}}>
@@ -652,7 +813,7 @@ function NuevaSol({user,lineas,onEnviada}){
           <Btn onClick={()=>setPaso(3)} disabled={!f.nombre||!f.apellido||!f.dni||!f.cuil||!f.email||!f.tel||!f.emp||!f.cbu}>CONTINUAR →</Btn>
         </div>
       </Card>}
-
+ 
       {paso===3&&linea&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:20}}>DOCUMENTACIÓN</div>
         <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>OBLIGATORIOS</div>
@@ -686,7 +847,7 @@ function NuevaSol({user,lineas,onEnviada}){
           <Btn onClick={()=>setPaso(4)} disabled={(linea.docsReq||[]).some(d=>!docs[d])}>CONTINUAR →</Btn>
         </div>
       </Card>}
-
+ 
       {paso===4&&linea&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:22}}>RESUMEN Y CONFIRMACIÓN</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
@@ -718,7 +879,7 @@ function NuevaSol({user,lineas,onEnviada}){
     </div>
   );
 }
-
+ 
 // ── MODAL DETALLE ─────────────────────────────────────────────────────────────
 function Modal({sol:s,onClose,onResolver,readOnly}){
   const [obs,setObs]=useState(s.obs||'');const [conf,setConf]=useState(null);
@@ -778,7 +939,7 @@ function Modal({sol:s,onClose,onResolver,readOnly}){
     </div>
   );
 }
-
+ 
 // ── APP ───────────────────────────────────────────────────────────────────────
 export default function App(){
   const [user,setUser]=useState(null);
@@ -787,18 +948,17 @@ export default function App(){
   if(user.rol==='analista') return <Analista user={user} onLogout={()=>setUser(null)}/>;
   return <Embajador user={user} onLogout={()=>setUser(null)}/>;
 }
-
+ 
 // ══════════════════════════════════════════════════════════════════════════════
 // MÓDULO B — PRE-APROBACIÓN CREDITICIA
 // ══════════════════════════════════════════════════════════════════════════════
-
-// ── Helpers para parsear respuesta Nosis ─────────────────────────────────────
+ 
 function getNosisVar(variables, nombre) {
   if (!variables) return null;
   const v = variables.find(x => x.Nombre === nombre);
   return v ? v.Valor : null;
 }
-
+ 
 function parsearNosis(data) {
   const contenido = data?.Contenido;
   const resultado = contenido?.Resultado;
@@ -809,9 +969,7 @@ function parsearNosis(data) {
   const arr = Array.isArray(vars) ? vars : vars ? [vars] : [];
   return {
     ok: true,
-    // [VI] Identificacion
     cuil: getNosisVar(arr, 'VI_Identificacion'),
-    // [VI] Domicilio Fiscal
     domCalle: getNosisVar(arr, 'VI_DomAF_Calle'),
     domNro: getNosisVar(arr, 'VI_DomAF_Nro'),
     domPiso: getNosisVar(arr, 'VI_DomAF_Piso'),
@@ -819,37 +977,27 @@ function parsearNosis(data) {
     domLoc: getNosisVar(arr, 'VI_DomAF_Loc'),
     domCP: getNosisVar(arr, 'VI_DomAF_CP'),
     domProv: getNosisVar(arr, 'VI_DomAF_Prov'),
-    // [VI] Telefonos
     telCodArea: getNosisVar(arr, 'VI_Tel1_CodArea'),
     telNro: getNosisVar(arr, 'VI_Tel1_Nro'),
-    // [VI] Inscripcion AFIP
     esJubilado: getNosisVar(arr, 'VI_Jubilado_Es'),
     esEmpleado: getNosisVar(arr, 'VI_Empleado_Es'),
     esMonotributista: getNosisVar(arr, 'VI_Inscrip_Monotributo_Es'),
     esAutonomo: getNosisVar(arr, 'VI_Inscrip_Autonomo_Es'),
     antiguedadLaboral: parseInt(getNosisVar(arr, 'VI_AntiguedadLaboral')) || null,
-    // [CI] Comportamiento crediticio
     compromisoMensual: getNosisVar(arr, 'CI_Vig_CompMensual'),
-    // [HC] Cheques rechazados BCRA
     cheques6mCant: parseInt(getNosisVar(arr, 'HC_6m_SF_NoPag_Cant')) || 0,
     cheques6mMonto: getNosisVar(arr, 'HC_6m_SF_NoPag_Monto'),
-    // [QU] Juicios, Quiebras, Concursos
     concursos24m: parseInt(getNosisVar(arr, 'CQ_24m_Cant')) || 0,
-    // [RC] Referencias Comerciales
     refVigCant: parseInt(getNosisVar(arr, 'RC_Vig_Cant')) || 0,
     refVigFuente: getNosisVar(arr, 'RC_Vig_Fuente'),
-    // [CO] Consultados
     consultas12m: parseInt(getNosisVar(arr, 'CO_12m_Cant')) || 0,
-    // [DF] Deudores Fiscales
     deudaFiscal: getNosisVar(arr, 'DF_Tiene'),
-    // [FEX] Fuentes Externas
     cneFecAct: getNosisVar(arr, 'FEX_CNE_FecAct'),
     cneFecVenc: getNosisVar(arr, 'FEX_CNE_FecVenc'),
-    // [CNE] Cumplimiento Censal
     cneTiene: getNosisVar(arr, 'CNE_CertificadoTiene'),
   };
 }
-
+ 
 function parsearBCRA(data) {
   if (!data || data.status !== 200) return { ok: false, error: 'CUIL no encontrado en BCRA' };
   const resultados = data.results?.periodos?.[0]?.entidades || [];
@@ -862,51 +1010,34 @@ function parsearBCRA(data) {
   });
   return { ok: true, peorSit, deudas, cantEntidades: resultados.length };
 }
-
+ 
 function evaluarCredito(bcra, nosis, prom30) {
   const alertas = [];
   const rechazos = [];
-
-  // ── BCRA Central de Deudores ──────────────────────────────────────────────
   if (bcra && bcra.ok) {
     if (bcra.peorSit >= 3) rechazos.push(`BCRA: Situación ${bcra.peorSit} — Rechazo automático`);
-    else if (bcra.peorSit === 2) alertas.push('BCRA: Situación 2 — Requiere análisis adicional (Nivel 2 mínimo)');
+    else if (bcra.peorSit === 2) alertas.push('BCRA: Situación 2 — Requiere análisis adicional');
   } else {
     alertas.push('BCRA: No figura en Central de Deudores — sin historial bancario');
   }
-
-  // ── Nosis VR=9 ────────────────────────────────────────────────────────────
   if (nosis && nosis.ok) {
-    // Cheques
-    if (nosis.cheques6mCant > 0)
-      rechazos.push(`Nosis: ${nosis.cheques6mCant} cheque(s) sin fondos no pagados en últimos 6 meses`);
-    // Concursos y quiebras
-    if (nosis.concursos24m > 0)
-      rechazos.push(`Nosis: ${nosis.concursos24m} concurso(s)/quiebra(s) en últimos 24 meses`);
-    // Deuda fiscal
-    if (nosis.deudaFiscal === 'SI')
-      alertas.push('Nosis: Registra deudas fiscales en AFIP');
-    // Situación laboral
+    if (nosis.cheques6mCant > 0) rechazos.push(`Nosis: ${nosis.cheques6mCant} cheque(s) sin fondos no pagados en últimos 6 meses`);
+    if (nosis.concursos24m > 0) rechazos.push(`Nosis: ${nosis.concursos24m} concurso(s)/quiebra(s) en últimos 24 meses`);
+    if (nosis.deudaFiscal === 'SI') alertas.push('Nosis: Registra deudas fiscales en AFIP');
     if (nosis.esEmpleado === 'NO' && nosis.esMonotributista === 'NO' && nosis.esAutonomo === 'NO' && nosis.esJubilado === 'NO')
       alertas.push('Nosis: No figura como empleado, monotributista, autónomo ni jubilado en AFIP');
-    // Compromiso mensual vs capacidad
     if (nosis.compromisoMensual && prom30 > 0) {
       const compMens = parseFloat(nosis.compromisoMensual.replace(/[^0-9.]/g, '')) || 0;
-      if (compMens > prom30)
-        alertas.push(`Nosis: Compromiso mensual existente ($${compMens.toLocaleString('es-AR')}) supera el 30% del sueldo`);
+      if (compMens > prom30) alertas.push(`Nosis: Compromiso mensual existente supera el 30% del sueldo`);
     }
-    // Antigüedad laboral
     if (nosis.antiguedadLaboral !== null && nosis.antiguedadLaboral < 6)
       alertas.push(`Nosis: Antigüedad laboral menor a 6 meses (${nosis.antiguedadLaboral} meses)`);
   }
-
   const aprobado = rechazos.length === 0;
   const conObservaciones = aprobado && alertas.length > 0;
-
   return { aprobado, conObservaciones, rechazos, alertas };
 }
-
-// ── Componente Módulo B ───────────────────────────────────────────────────────
+ 
 function ModuloB({ sol, onVolver, onActualizar, user }) {
   const [loading, setLoading] = useState(false);
   const [bcraData, setBcraData] = useState(null);
@@ -915,11 +1046,11 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
   const [obs, setObs] = useState('');
   const [conf, setConf] = useState(null);
   const [enviando, setEnviando] = useState(false);
-
+ 
   const cli = sol.cliente || {};
   const prom = sol.prom_sueldo || 0;
   const prom30 = prom * 0.30;
-
+ 
   async function consultar() {
     setLoading(true); setError(''); setBcraData(null); setNosisData(null);
     try {
@@ -934,11 +1065,11 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
     }
     setLoading(false);
   }
-
+ 
   async function resolver(estado) {
     setEnviando(true);
     const bcraResumen = bcraData ? `BCRA Sit. ${bcraData.peorSit} | ${bcraData.cantEntidades} entidad(es)` : 'BCRA: no consultado';
-    const nosisResumen = nosisData?.ok ? `Score Nosis: ${nosisData.score || 'N/D'} | Cheques 6m: ${nosisData.cheques6m} | Juicios 12m: ${nosisData.juicios12m}` : 'Nosis: no consultado';
+    const nosisResumen = nosisData?.ok ? `Cheques 6m: ${nosisData.cheques6mCant} | Concursos: ${nosisData.concursos24m} | Deuda Fiscal: ${nosisData.deudaFiscal}` : 'Nosis: no consultado';
     const obsCompleto = `${obs}\n\n--- ANÁLISIS CREDITICIO ---\n${bcraResumen}\n${nosisResumen}`.trim();
     await db.updateSolicitud(sol.id, {
       estado,
@@ -953,14 +1084,12 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
     onActualizar();
     onVolver();
   }
-
+ 
   const bcra = bcraData;
   const nosis = nosisData;
   const eval_ = (bcra || nosis) ? evaluarCredito(bcra || { ok: false }, nosis || { ok: false }, prom30) : null;
-
   const colorSit = sit => sit === 1 ? C.green : sit === 2 ? C.gold : C.red;
-  const fmt = n => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n || 0);
-
+ 
   return (
     <div style={{ minHeight: '100vh', background: C.bg2 }}>
       <Hdr title="ANÁLISIS CREDITICIO — MÓDULO B" user={user} onLogout={() => {}} />
@@ -968,28 +1097,14 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
           <button onClick={onVolver} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.text3 }}>←</button>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 900, color: C.text, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-              {cli.nombre} {cli.apellido}
-            </div>
-            <div style={{ fontSize: 12, color: C.text3, marginTop: 2, fontWeight: 400 }}>
-              {sol.id} · CUIL {cli.cuil} · DNI {cli.dni}
-            </div>
+            <div style={{ fontSize: 17, fontWeight: 900, color: C.text, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{cli.nombre} {cli.apellido}</div>
+            <div style={{ fontSize: 12, color: C.text3, marginTop: 2, fontWeight: 400 }}>{sol.id} · CUIL {cli.cuil} · DNI {cli.dni}</div>
           </div>
         </div>
-
-        {/* Datos del crédito */}
+ 
         <Card style={{ padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-            {[
-              ['LÍNEA', sol.linea_nombre],
-              ['MONTO', fmt(sol.monto)],
-              ['PLAZO', `${sol.plazo} MESES`],
-              ['CUOTA EST.', fmt(sol.cuota)],
-              ['SUELDO PROM.', fmt(prom)],
-              ['30% SUELDO', fmt(prom30)],
-              ['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],
-              ['EMBAJADOR', sol.emb_nombre],
-            ].map(([l, v]) => (
+            {[['LÍNEA', sol.linea_nombre],['MONTO', fmt(sol.monto)],['PLAZO', `${sol.plazo} MESES`],['CUOTA EST.', fmt(sol.cuota)],['SUELDO PROM.', fmt(prom)],['30% SUELDO', fmt(prom30)],['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],['EMBAJADOR', sol.emb_nombre]].map(([l, v]) => (
               <div key={l} style={{ background: C.bg3, borderRadius: 8, padding: '10px 12px', border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{l}</div>
                 <div style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{v}</div>
@@ -997,43 +1112,30 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
             ))}
           </div>
         </Card>
-
-        {/* Botón consultar */}
+ 
         {!bcra && !nosis && (
           <Card style={{ padding: 32, textAlign: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 14, color: C.text2, marginBottom: 20, fontWeight: 400 }}>
-              Consultá BCRA y Nosis automáticamente con el CUIL del cliente.
-            </div>
+            <div style={{ fontSize: 14, color: C.text2, marginBottom: 20, fontWeight: 400 }}>Consultá BCRA y Nosis automáticamente con el CUIL del cliente.</div>
             {error && <div style={{ background: C.redL, color: C.red, borderRadius: 8, padding: '10px 14px', fontSize: 12, marginBottom: 16, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{error}</div>}
             <Btn onClick={consultar} disabled={loading} variant="gold" style={{ padding: '12px 40px', fontSize: 13 }}>
               {loading ? 'CONSULTANDO BCRA + NOSIS...' : '🔍 CONSULTAR BCRA + NOSIS'}
             </Btn>
           </Card>
         )}
-
+ 
         {loading && (
           <Card style={{ padding: 40, textAlign: 'center', marginBottom: 16 }}>
-            <div style={{ fontSize: 14, color: C.gold, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              CONSULTANDO BCRA Y NOSIS...
-            </div>
+            <div style={{ fontSize: 14, color: C.gold, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>CONSULTANDO BCRA Y NOSIS...</div>
             <div style={{ fontSize: 11, color: C.text3, marginTop: 8, fontWeight: 400 }}>Esto puede demorar hasta 30 segundos</div>
           </Card>
         )}
-
-        {/* Resultados */}
+ 
         {(bcra || nosis) && (
           <>
-            {/* Semáforo */}
             {eval_ && (
-              <Card style={{
-                padding: 20, marginBottom: 16,
-                background: eval_.rechazos.length > 0 ? C.redL : eval_.conObservaciones ? C.warnL : C.greenL,
-                border: `1.5px solid ${eval_.rechazos.length > 0 ? C.redB : eval_.conObservaciones ? C.goldB : C.greenB}`,
-              }}>
+              <Card style={{ padding: 20, marginBottom: 16, background: eval_.rechazos.length > 0 ? C.redL : eval_.conObservaciones ? C.goldL : C.greenL, border: `1.5px solid ${eval_.rechazos.length > 0 ? C.redB : eval_.conObservaciones ? C.goldB : C.greenB}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: eval_.rechazos.length + eval_.alertas.length > 0 ? 14 : 0 }}>
-                  <div style={{ fontSize: 28 }}>
-                    {eval_.rechazos.length > 0 ? '🔴' : eval_.conObservaciones ? '🟡' : '🟢'}
-                  </div>
+                  <div style={{ fontSize: 28 }}>{eval_.rechazos.length > 0 ? '🔴' : eval_.conObservaciones ? '🟡' : '🟢'}</div>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 900, color: eval_.rechazos.length > 0 ? C.red : eval_.conObservaciones ? C.gold : C.green, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                       {eval_.rechazos.length > 0 ? 'RECHAZO AUTOMÁTICO' : eval_.conObservaciones ? 'PRE-APROBADO CON OBSERVACIONES' : 'PRE-APROBADO SIN OBSERVACIONES'}
@@ -1041,21 +1143,14 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                     <div style={{ fontSize: 11, color: C.text2, fontWeight: 400, marginTop: 3 }}>Basado en consulta BCRA + Nosis</div>
                   </div>
                 </div>
-                {eval_.rechazos.map((r, i) => (
-                  <div key={i} style={{ fontSize: 12, color: C.red, fontWeight: 700, padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>✕ {r}</div>
-                ))}
-                {eval_.alertas.map((a, i) => (
-                  <div key={i} style={{ fontSize: 12, color: C.gold, fontWeight: 700, padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>⚠️ {a}</div>
-                ))}
+                {eval_.rechazos.map((r, i) => <div key={i} style={{ fontSize: 12, color: C.red, fontWeight: 700, padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>✕ {r}</div>)}
+                {eval_.alertas.map((a, i) => <div key={i} style={{ fontSize: 12, color: C.gold, fontWeight: 700, padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>⚠️ {a}</div>)}
               </Card>
             )}
-
+ 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              {/* BCRA */}
               <Card style={{ padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 900, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
-                  CENTRAL DE DEUDORES BCRA
-                </div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>CENTRAL DE DEUDORES BCRA</div>
                 {bcra?.ok ? (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
@@ -1064,9 +1159,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>PEOR SITUACIÓN</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: colorSit(bcra.peorSit) }}>
-                          {bcra.peorSit === 1 ? 'SITUACIÓN NORMAL' : bcra.peorSit === 2 ? 'RIESGO BAJO' : bcra.peorSit === 3 ? 'CON PROBLEMAS' : bcra.peorSit === 4 ? 'ALTO RIESGO' : bcra.peorSit === 5 ? 'IRRECUPERABLE' : 'IRRECUPERABLE (PREJUICIO)'}
-                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: colorSit(bcra.peorSit) }}>{bcra.peorSit === 1 ? 'SITUACIÓN NORMAL' : bcra.peorSit === 2 ? 'RIESGO BAJO' : bcra.peorSit === 3 ? 'CON PROBLEMAS' : bcra.peorSit === 4 ? 'ALTO RIESGO' : 'IRRECUPERABLE'}</div>
                       </div>
                     </div>
                     <div style={{ fontSize: 11, color: C.text2, fontWeight: 400 }}>{bcra.cantEntidades} entidad(es) informante(s)</div>
@@ -1084,22 +1177,14 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                   <div style={{ fontSize: 12, color: C.text3, fontWeight: 400 }}>No figura en la Central de Deudores del BCRA</div>
                 )}
               </Card>
-
-              {/* Nosis */}
+ 
               <Card style={{ padding: 20 }}>
-                <div style={{ fontSize: 12, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
-                  BUREAU NOSIS
-                </div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>BUREAU NOSIS</div>
                 {nosis?.ok ? (
                   <div>
                     <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>SITUACIÓN LABORAL (AFIP)</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
-                      {[
-                        ['EMPLEADO REL. DEPENDENCIA', nosis.esEmpleado],
-                        ['MONOTRIBUTISTA', nosis.esMonotributista],
-                        ['AUTÓNOMO', nosis.esAutonomo],
-                        ['JUBILADO', nosis.esJubilado],
-                      ].map(([l, v]) => (
+                      {[['EMPLEADO REL. DEPENDENCIA', nosis.esEmpleado],['MONOTRIBUTISTA', nosis.esMonotributista],['AUTÓNOMO', nosis.esAutonomo],['JUBILADO', nosis.esJubilado]].map(([l, v]) => (
                         <div key={l} style={{ background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
                           <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{l}</div>
                           <div style={{ fontSize: 13, fontWeight: 900, color: v === 'SI' ? C.green : v === 'NO' ? C.red : C.text3 }}>{v || 'N/D'}</div>
@@ -1114,14 +1199,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                     )}
                     <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>COMPORTAMIENTO CREDITICIO</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
-                      {[
-                        ['CHEQUES S/FONDOS 6M', nosis.cheques6mCant, nosis.cheques6mCant > 0 ? C.red : C.green],
-                        ['MONTO CHEQUES 6M', nosis.cheques6mMonto || '$0', nosis.cheques6mCant > 0 ? C.red : C.text2],
-                        ['CONCURSOS/QUIEBRAS 24M', nosis.concursos24m, nosis.concursos24m > 0 ? C.red : C.green],
-                        ['COMPROMISO MENSUAL', nosis.compromisoMensual || 'S/D', C.text2],
-                        ['DEUDA FISCAL AFIP', nosis.deudaFiscal === 'SI' ? 'SÍ' : nosis.deudaFiscal === 'NO' ? 'NO' : 'S/D', nosis.deudaFiscal === 'SI' ? C.red : C.green],
-                        ['CONSULTAS ÚLTIMOS 12M', nosis.consultas12m, nosis.consultas12m > 10 ? C.gold : C.text2],
-                      ].map(([l, v, color]) => (
+                      {[['CHEQUES S/FONDOS 6M', nosis.cheques6mCant, nosis.cheques6mCant > 0 ? C.red : C.green],['MONTO CHEQUES 6M', nosis.cheques6mMonto || '$0', nosis.cheques6mCant > 0 ? C.red : C.text2],['CONCURSOS/QUIEBRAS 24M', nosis.concursos24m, nosis.concursos24m > 0 ? C.red : C.green],['COMPROMISO MENSUAL', nosis.compromisoMensual || 'S/D', C.text2],['DEUDA FISCAL AFIP', nosis.deudaFiscal === 'SI' ? 'SÍ' : nosis.deudaFiscal === 'NO' ? 'NO' : 'S/D', nosis.deudaFiscal === 'SI' ? C.red : C.green],['CONSULTAS ÚLTIMOS 12M', nosis.consultas12m, nosis.consultas12m > 10 ? C.gold : C.text2]].map(([l, v, color]) => (
                         <div key={l} style={{ background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
                           <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{l}</div>
                           <div style={{ fontSize: 13, fontWeight: 900, color: color || C.text }}>{v}</div>
@@ -1130,10 +1208,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                     </div>
                     <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>REFERENCIAS Y CONTACTO</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                      {[
-                        ['REFERENCIAS COMERCIALES', nosis.refVigCant || '0', nosis.refVigCant > 0 ? C.green : C.text3],
-                        ['TELÉFONO AFIP', nosis.telNro ? `(${nosis.telCodArea}) ${nosis.telNro}` : 'S/D', nosis.telNro ? C.text : C.text3],
-                      ].map(([l, v, color]) => (
+                      {[['REFERENCIAS COMERCIALES', nosis.refVigCant || '0', nosis.refVigCant > 0 ? C.green : C.text3],['TELÉFONO AFIP', nosis.telNro ? `(${nosis.telCodArea}) ${nosis.telNro}` : 'S/D', nosis.telNro ? C.text : C.text3]].map(([l, v, color]) => (
                         <div key={l} style={{ background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
                           <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{l}</div>
                           <div style={{ fontSize: 13, fontWeight: 900, color }}>{v}</div>
@@ -1143,10 +1218,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                     {(nosis.domCalle || nosis.domLoc) && (
                       <div style={{ marginTop: 6, background: C.bg3, borderRadius: 7, padding: '7px 10px', border: `1px solid ${C.border}` }}>
                         <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>DOMICILIO FISCAL AFIP</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
-                          {[nosis.domCalle, nosis.domNro, nosis.domPiso && `Piso ${nosis.domPiso}`, nosis.domDto && `Dto ${nosis.domDto}`].filter(Boolean).join(' ')}
-                          {nosis.domLoc && ` — ${nosis.domLoc}`}{nosis.domProv && `, ${nosis.domProv}`}
-                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{[nosis.domCalle, nosis.domNro, nosis.domPiso && `Piso ${nosis.domPiso}`, nosis.domDto && `Dto ${nosis.domDto}`].filter(Boolean).join(' ')}{nosis.domLoc && ` — ${nosis.domLoc}`}{nosis.domProv && `, ${nosis.domProv}`}</div>
                       </div>
                     )}
                   </div>
@@ -1155,15 +1227,11 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                 )}
               </Card>
             </div>
-
-            {/* Botón volver a consultar */}
+ 
             <div style={{ textAlign: 'right', marginBottom: 16 }}>
-              <Btn onClick={consultar} disabled={loading} variant="sec" style={{ fontSize: 11 }}>
-                {loading ? 'CONSULTANDO...' : '↻ VOLVER A CONSULTAR'}
-              </Btn>
+              <Btn onClick={consultar} disabled={loading} variant="sec" style={{ fontSize: 11 }}>{loading ? 'CONSULTANDO...' : '↻ VOLVER A CONSULTAR'}</Btn>
             </div>
-
-            {/* Resolución */}
+ 
             <Card style={{ padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>RESOLUCIÓN DEL ANALISTA</div>
               <div style={{ marginBottom: 14 }}>
@@ -1183,9 +1251,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                     {conf === 'aprobado' ? '¿CONFIRMAR PRE-APROBACIÓN Y ENVÍO DE LINK AL CLIENTE?' : '¿CONFIRMAR RECHAZO DE LA SOLICITUD?'}
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <Btn onClick={() => resolver(conf)} variant={conf === 'aprobado' ? 'success' : 'danger'} style={{ flex: 1 }} disabled={enviando}>
-                      {enviando ? 'PROCESANDO...' : 'CONFIRMAR'}
-                    </Btn>
+                    <Btn onClick={() => resolver(conf)} variant={conf === 'aprobado' ? 'success' : 'danger'} style={{ flex: 1 }} disabled={enviando}>{enviando ? 'PROCESANDO...' : 'CONFIRMAR'}</Btn>
                     <Btn onClick={() => setConf(null)} variant="sec" style={{ flex: 1 }}>CANCELAR</Btn>
                   </div>
                 </div>
