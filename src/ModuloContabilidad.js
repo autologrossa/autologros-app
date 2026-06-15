@@ -3,10 +3,10 @@
 // Archivo: src/ModuloContabilidad.js
 // Acceso: Administrador únicamente
 // ══════════════════════════════════════════════════════════════════════════════
- 
+
 import { useState, useEffect } from 'react';
 import { db } from './supabase';
- 
+
 const C = {
   bg0:'#030F1E', bg1:'#06172E', bg2:'#071829', bg3:'#0A1F3A', bg4:'#0D2540',
   border:'rgba(255,255,255,0.08)', border2:'rgba(255,255,255,0.12)',
@@ -15,12 +15,12 @@ const C = {
   blue:'#4A9AE0', green:'#4AE08A', greenL:'rgba(74,224,138,0.08)', greenB:'rgba(74,224,138,0.15)',
   red:'#E05050', redL:'rgba(224,80,80,0.08)', redB:'rgba(224,80,80,0.15)',
 };
- 
+
 const fmt = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:2}).format(n||0);
 const hoy = () => new Date().toISOString().split('T')[0];
- 
+
 function Card({children,style}){ return <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,...style}}>{children}</div>; }
- 
+
 const TIPO_COLORS = {
   activo: C.blue,
   pasivo: C.red,
@@ -28,7 +28,7 @@ const TIPO_COLORS = {
   ingreso: C.green,
   egreso: C.red,
 };
- 
+
 const TIPO_LABELS = {
   activo: 'ACTIVO',
   pasivo: 'PASIVO',
@@ -36,14 +36,14 @@ const TIPO_LABELS = {
   ingreso: 'INGRESOS',
   egreso: 'EGRESOS',
 };
- 
+
 export default function ModuloContabilidad({ user }) {
   const [tab, setTab] = useState('dashboard');
   const [cuentas, setCuentas] = useState([]);
   const [asientos, setAsientos] = useState([]);
   const [lineas, setLineas] = useState([]);
   const [loading, setLoading] = useState(true);
- 
+
   // Estados para nuevo asiento
   const [nuevoAsiento, setNuevoAsiento] = useState(false);
   const [asientoFecha, setAsientoFecha] = useState(hoy());
@@ -54,18 +54,18 @@ export default function ModuloContabilidad({ user }) {
     { cuenta_id: '', debe: '', haber: '' },
   ]);
   const [guardando, setGuardando] = useState(false);
- 
+
   // Estados para nueva cuenta
   const [nuevaCuenta, setNuevaCuenta] = useState(false);
   const [cuentaForm, setCuentaForm] = useState({ codigo: '', nombre: '', tipo: '', categoria: '' });
- 
+
   // Filtros
   const [filtroMayor, setFiltroMayor] = useState('');
   const [filtroDiarioDesde, setFiltroDiarioDesde] = useState('');
   const [filtroDiarioHasta, setFiltroDiarioHasta] = useState('');
- 
+
   useEffect(() => { cargar(); }, []);
- 
+
   async function cargar() {
     setLoading(true);
     const [{ data: c }, { data: a }, { data: l }] = await Promise.all([
@@ -78,7 +78,7 @@ export default function ModuloContabilidad({ user }) {
     setLineas(l || []);
     setLoading(false);
   }
- 
+
   // ── Cálculos ──────────────────────────────────────────────────────────────
   function saldoCuenta(cuentaId) {
     const cuenta = cuentas.find(c => c.id === cuentaId);
@@ -91,24 +91,24 @@ export default function ModuloContabilidad({ user }) {
     if (cuenta.tipo === 'activo' || cuenta.tipo === 'egreso') return totalDebe - totalHaber;
     return totalHaber - totalDebe;
   }
- 
+
   function totalTipo(tipo) {
     return cuentas.filter(c => c.tipo === tipo).reduce((a, c) => a + saldoCuenta(c.id), 0);
   }
- 
+
   const totalActivo = totalTipo('activo');
   const totalPasivo = totalTipo('pasivo');
   const totalPatrimonio = totalTipo('patrimonio');
   const totalIngresos = totalTipo('ingreso');
   const totalEgresos = totalTipo('egreso');
   const resultadoEjercicio = totalIngresos - totalEgresos;
- 
+
   // ── Guardar asiento ───────────────────────────────────────────────────────
   async function guardarAsiento() {
     const lineasValidas = asientoLineas.filter(l => l.cuenta_id && (parseFloat(l.debe) > 0 || parseFloat(l.haber) > 0));
     const totalDebe = lineasValidas.reduce((a, l) => a + (parseFloat(l.debe) || 0), 0);
     const totalHaber = lineasValidas.reduce((a, l) => a + (parseFloat(l.haber) || 0), 0);
- 
+
     if (Math.abs(totalDebe - totalHaber) > 0.01) {
       alert(`El asiento no está balanceado. Debe: ${fmt(totalDebe)} / Haber: ${fmt(totalHaber)}`);
       return;
@@ -117,7 +117,7 @@ export default function ModuloContabilidad({ user }) {
       alert('El asiento debe tener al menos 2 líneas');
       return;
     }
- 
+
     setGuardando(true);
     try {
       const id = `AST-${Date.now()}`;
@@ -129,7 +129,7 @@ export default function ModuloContabilidad({ user }) {
         tipo: 'manual',
         usuario: user.nombre,
       });
- 
+
       const lineasInsert = lineasValidas.map((l, i) => ({
         id: `LIN-${Date.now()}-${i}`,
         asiento_id: id,
@@ -138,7 +138,7 @@ export default function ModuloContabilidad({ user }) {
         haber: parseFloat(l.haber) || 0,
       }));
       await db.supabase.from('asiento_lineas').insert(lineasInsert);
- 
+
       setNuevoAsiento(false);
       setAsientoDesc('');
       setAsientoRef('');
@@ -149,7 +149,7 @@ export default function ModuloContabilidad({ user }) {
     }
     setGuardando(false);
   }
- 
+
   // ── Guardar cuenta ────────────────────────────────────────────────────────
   async function guardarCuenta() {
     const id = `cta-${Date.now()}`;
@@ -165,7 +165,7 @@ export default function ModuloContabilidad({ user }) {
     setCuentaForm({ codigo: '', nombre: '', tipo: '', categoria: '' });
     await cargar();
   }
- 
+
   // ── Imprimir ──────────────────────────────────────────────────────────────
   function imprimirBalance() {
     const w = window.open('', '_blank');
@@ -227,7 +227,7 @@ export default function ModuloContabilidad({ user }) {
     w.document.close();
     setTimeout(() => w.print(), 500);
   }
- 
+
   function imprimirDiario() {
     const asientosFiltrados = asientos.filter(a => {
       if (filtroDiarioDesde && a.fecha < filtroDiarioDesde) return false;
@@ -290,7 +290,7 @@ export default function ModuloContabilidad({ user }) {
     w.document.close();
     setTimeout(() => w.print(), 500);
   }
- 
+
   const tabs = [
     ['dashboard','DASHBOARD'],
     ['plan','PLAN DE CUENTAS'],
@@ -299,9 +299,9 @@ export default function ModuloContabilidad({ user }) {
     ['mayor','LIBRO MAYOR'],
     ['balance','BALANCE'],
   ];
- 
+
   const cuentaSeleccionada = cuentas.find(c => c.id === filtroMayor);
- 
+
   return (
     <div>
       {/* Sub-tabs */}
@@ -320,9 +320,9 @@ export default function ModuloContabilidad({ user }) {
           ↻ ACTUALIZAR
         </button>
       </div>
- 
+
       {loading ? <div style={{textAlign:'center',padding:60,color:C.text3}}>CARGANDO...</div> : <>
- 
+
       {/* ── DASHBOARD ── */}
       {tab==='dashboard'&&(
         <div>
@@ -342,7 +342,7 @@ export default function ModuloContabilidad({ user }) {
               </div>
             ))}
           </div>
- 
+
           {/* Ecuación contable */}
           <Card style={{padding:20,marginBottom:20}}>
             <div style={{fontSize:11,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>ECUACIÓN CONTABLE</div>
@@ -368,7 +368,7 @@ export default function ModuloContabilidad({ user }) {
               {Math.abs(totalActivo-(totalPasivo+totalPatrimonio+resultadoEjercicio))<1 ? '✓ ECUACIÓN BALANCEADA' : '⚠️ ECUACIÓN DESBALANCEADA — REVISAR ASIENTOS'}
             </div>
           </Card>
- 
+
           {/* Últimos asientos */}
           <Card style={{padding:0,overflow:'hidden'}}>
             <div style={{padding:'14px 18px',borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -381,7 +381,7 @@ export default function ModuloContabilidad({ user }) {
                 <div key={a.id} style={{padding:'12px 18px',borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                   <div>
                     <div style={{fontSize:12,fontWeight:700,color:C.text}}>{a.descripcion}</div>
-                    <div style={{fontSize:10,color:C.text3,marginTop:2}}>{a.id} · {a.fecha} · {a.usuario}</div>
+                    <div style={{fontSize:10,color:C.text3,marginTop:2}}>N° {String(a.numero||0).padStart(4,'0')} · {a.id} · {a.fecha} · {a.usuario}</div>
                   </div>
                   <div style={{fontSize:13,fontWeight:900,color:C.gold}}>{fmt(total)}</div>
                 </div>
@@ -391,7 +391,7 @@ export default function ModuloContabilidad({ user }) {
           </Card>
         </div>
       )}
- 
+
       {/* ── PLAN DE CUENTAS ── */}
       {tab==='plan'&&(
         <div>
@@ -401,7 +401,7 @@ export default function ModuloContabilidad({ user }) {
               + NUEVA CUENTA
             </button>
           </div>
- 
+
           {nuevaCuenta && (
             <Card style={{padding:24,marginBottom:20,border:`1px solid ${C.goldB}`}}>
               <div style={{fontSize:12,fontWeight:900,color:C.gold,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:16}}>NUEVA CUENTA</div>
@@ -443,7 +443,7 @@ export default function ModuloContabilidad({ user }) {
               </div>
             </Card>
           )}
- 
+
           {['activo','pasivo','patrimonio','ingreso','egreso'].map(tipo => {
             const cuentasTipo = cuentas.filter(c => c.tipo === tipo);
             if (!cuentasTipo.length) return null;
@@ -489,7 +489,7 @@ export default function ModuloContabilidad({ user }) {
           })}
         </div>
       )}
- 
+
       {/* ── ASIENTOS ── */}
       {tab==='asientos'&&(
         <div>
@@ -499,7 +499,7 @@ export default function ModuloContabilidad({ user }) {
               + NUEVO ASIENTO
             </button>
           </div>
- 
+
           {nuevoAsiento && (
             <Card style={{padding:24,marginBottom:24,border:`1px solid ${C.goldB}`}}>
               <div style={{fontSize:12,fontWeight:900,color:C.gold,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:16}}>NUEVO ASIENTO MANUAL</div>
@@ -520,7 +520,7 @@ export default function ModuloContabilidad({ user }) {
                     style={{width:'100%',padding:'9px 12px',border:`1.5px solid ${C.border2}`,borderRadius:8,fontSize:13,color:C.text,background:'rgba(255,255,255,0.05)',fontFamily:'inherit',fontWeight:700,boxSizing:'border-box',outline:'none'}}/>
                 </div>
               </div>
- 
+
               <table style={{width:'100%',borderCollapse:'collapse',marginBottom:12}}>
                 <thead>
                   <tr>
@@ -575,7 +575,7 @@ export default function ModuloContabilidad({ user }) {
                   </tr>
                 </tfoot>
               </table>
- 
+
               {(() => {
                 const td = asientoLineas.reduce((a,l)=>a+(parseFloat(l.debe)||0),0);
                 const th = asientoLineas.reduce((a,l)=>a+(parseFloat(l.haber)||0),0);
@@ -586,7 +586,7 @@ export default function ModuloContabilidad({ user }) {
                   </div>
                 ) : null;
               })()}
- 
+
               <div style={{display:'flex',gap:10,justifyContent:'space-between',alignItems:'center'}}>
                 <button onClick={()=>setAsientoLineas([...asientoLineas,{cuenta_id:'',debe:'',haber:''}])}
                   style={{background:'rgba(255,255,255,0.05)',color:C.text2,border:`1px solid ${C.border}`,padding:'8px 16px',borderRadius:8,fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
@@ -602,7 +602,7 @@ export default function ModuloContabilidad({ user }) {
               </div>
             </Card>
           )}
- 
+
           {/* Lista de asientos */}
           {!asientos.length ? (
             <Card style={{padding:60,textAlign:'center'}}>
@@ -617,7 +617,7 @@ export default function ModuloContabilidad({ user }) {
               <Card key={a.id} style={{padding:0,overflow:'hidden',marginBottom:12}}>
                 <div style={{padding:'12px 18px',borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center',background:C.bg3}}>
                   <div>
-                    <span style={{fontSize:11,fontWeight:900,color:C.gold,marginRight:12}}>{a.id}</span>
+                    <span style={{fontSize:11,fontWeight:900,color:C.gold,marginRight:12}}>N° {String(a.numero||0).padStart(4,'0')}</span>
                     <span style={{fontSize:12,fontWeight:700,color:C.text}}>{a.descripcion}</span>
                   </div>
                   <div style={{display:'flex',gap:16,alignItems:'center'}}>
@@ -646,7 +646,7 @@ export default function ModuloContabilidad({ user }) {
           })}
         </div>
       )}
- 
+
       {/* ── LIBRO DIARIO ── */}
       {tab==='diario'&&(
         <div>
@@ -656,7 +656,7 @@ export default function ModuloContabilidad({ user }) {
               🖨️ IMPRIMIR / PDF
             </button>
           </div>
- 
+
           <Card style={{padding:20,marginBottom:20}}>
             <div style={{display:'flex',gap:16,alignItems:'flex-end'}}>
               {[['DESDE',filtroDiarioDesde,setFiltroDiarioDesde],['HASTA',filtroDiarioHasta,setFiltroDiarioHasta]].map(([lbl,val,set])=>(
@@ -668,7 +668,7 @@ export default function ModuloContabilidad({ user }) {
               ))}
             </div>
           </Card>
- 
+
           {asientos.filter(a => {
             if (filtroDiarioDesde && a.fecha < filtroDiarioDesde) return false;
             if (filtroDiarioHasta && a.fecha > filtroDiarioHasta) return false;
@@ -680,7 +680,7 @@ export default function ModuloContabilidad({ user }) {
             return (
               <Card key={a.id} style={{padding:0,overflow:'hidden',marginBottom:12}}>
                 <div style={{padding:'10px 18px',borderBottom:`1px solid ${C.border}`,background:C.bg3,display:'flex',justifyContent:'space-between'}}>
-                  <span style={{fontSize:11,fontWeight:900,color:C.gold}}>{a.id}</span>
+                  <span style={{fontSize:11,fontWeight:900,color:C.gold}}>N° {String(a.numero||0).padStart(4,'0')}</span>
                   <span style={{fontSize:12,fontWeight:700,color:C.text}}>{a.descripcion}</span>
                   <span style={{fontSize:10,color:C.text3}}>{a.fecha}{a.referencia?` · ${a.referencia}`:''}</span>
                 </div>
@@ -710,7 +710,7 @@ export default function ModuloContabilidad({ user }) {
           })}
         </div>
       )}
- 
+
       {/* ── LIBRO MAYOR ── */}
       {tab==='mayor'&&(
         <div>
@@ -729,7 +729,7 @@ export default function ModuloContabilidad({ user }) {
               ))}
             </select>
           </Card>
- 
+
           {cuentaSeleccionada && (()=>{
             const ls = lineas.filter(l => l.cuenta_id === filtroMayor);
             const asientosConLinea = ls.map(l => ({
@@ -787,7 +787,7 @@ export default function ModuloContabilidad({ user }) {
           })()}
         </div>
       )}
- 
+
       {/* ── BALANCE ── */}
       {tab==='balance'&&(
         <div>
@@ -797,7 +797,7 @@ export default function ModuloContabilidad({ user }) {
               🖨️ IMPRIMIR / PDF
             </button>
           </div>
- 
+
           <Card style={{padding:0,overflow:'hidden',marginBottom:20}}>
             <table style={{width:'100%',borderCollapse:'collapse'}}>
               <thead>
@@ -840,7 +840,7 @@ export default function ModuloContabilidad({ user }) {
               </tbody>
             </table>
           </Card>
- 
+
           {/* Verificación ecuación */}
           <Card style={{padding:18,background:Math.abs(totalActivo-(totalPasivo+totalPatrimonio+resultadoEjercicio))<1?C.greenL:C.redL,border:`1px solid ${Math.abs(totalActivo-(totalPasivo+totalPatrimonio+resultadoEjercicio))<1?C.greenB:C.redB}`}}>
             <div style={{fontSize:12,fontWeight:900,color:Math.abs(totalActivo-(totalPasivo+totalPatrimonio+resultadoEjercicio))<1?C.green:C.red,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:10}}>
@@ -857,9 +857,8 @@ export default function ModuloContabilidad({ user }) {
           </Card>
         </div>
       )}
- 
+
       </>}
     </div>
   );
 }
- 
