@@ -4,10 +4,9 @@ import FirmaCliente from './FirmaCliente';
 import LegajoDigital, { PanelLegajos } from './LegajoDigital';
 import ModuloE from './ModuloE_Desembolso';
 import ModuloF, { CuentaCorriente } from './ModuloF_Cartera';
-
 import ModuloH from './ModuloH_Reportes';
 import { db } from './supabase';
- 
+
 // ── Cálculos financieros ──────────────────────────────────────────────────────
 const IVA = 1.21;
 function calcTEA(tna) { return ((Math.pow(1 + (tna/100/12)*IVA, 12) - 1) * 100); }
@@ -25,7 +24,7 @@ function calcDesembolso(monto, gastos) { return monto - monto*(gastos/100)*IVA; 
 const fmt = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n);
 const fmtN = n => new Intl.NumberFormat('es-AR',{maximumFractionDigits:0}).format(n);
 const fmtP = n => `${parseFloat(n).toFixed(2)}%`;
- 
+
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
   bg0:'#030F1E', bg1:'#06172E', bg2:'#071829', bg3:'#0A1F3A', bg4:'#0D2540',
@@ -35,7 +34,7 @@ const C = {
   blue:'#4A9AE0', green:'#4AE08A', greenL:'rgba(74,224,138,0.08)', greenB:'rgba(74,224,138,0.15)',
   red:'#E05050', redL:'rgba(224,80,80,0.08)', redB:'rgba(224,80,80,0.15)',
 };
- 
+
 // ── Componentes base ──────────────────────────────────────────────────────────
 const Logo = ({size=34}) => (
   <svg width={size} height={size} viewBox="0 0 44 44" fill="none">
@@ -44,9 +43,9 @@ const Logo = ({size=34}) => (
     <text x="22" y="27" textAnchor="middle" fill={C.gold} fontSize="16" fontWeight="900" fontFamily="Helvetica Neue,Arial,sans-serif">$</text>
   </svg>
 );
- 
+
 function Card({children,style}){ return <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,...style}}>{children}</div>; }
- 
+
 function Inp({label,type='text',value,onChange,placeholder,req,step,hint}){
   return (
     <div style={{marginBottom:16}}>
@@ -64,7 +63,7 @@ function Inp({label,type='text',value,onChange,placeholder,req,step,hint}){
     </div>
   );
 }
- 
+
 function Sel({label,value,onChange,options,req}){
   return (
     <div style={{marginBottom:16}}>
@@ -80,7 +79,7 @@ function Sel({label,value,onChange,options,req}){
     </div>
   );
 }
- 
+
 function Btn({onClick,children,variant='primary',disabled,style,full}){
   const vs={
     primary:{background:'#1A4F8A',color:'#fff',border:'none'},
@@ -100,7 +99,7 @@ function Btn({onClick,children,variant='primary',disabled,style,full}){
     </button>
   );
 }
- 
+
 function Badge({text,type}){
   const c={
     pendiente:[C.goldL,C.gold,C.goldB],
@@ -117,7 +116,7 @@ function Badge({text,type}){
     </span>
   );
 }
- 
+
 function Hdr({title,user,onLogout}){
   return (
     <div style={{background:C.bg1,borderBottom:`1px solid ${C.border}`,padding:'14px 24px',
@@ -136,7 +135,7 @@ function Hdr({title,user,onLogout}){
     </div>
   );
 }
- 
+
 function Tabs({tabs,active,onChange}){
   return (
     <div style={{background:C.bg3,borderBottom:`1px solid ${C.border}`,padding:'0 24px',display:'flex',gap:4}}>
@@ -152,12 +151,12 @@ function Tabs({tabs,active,onChange}){
     </div>
   );
 }
- 
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function Login({onLogin}){
   const [cod,setCod]=useState('');const [pw,setPw]=useState('');
   const [err,setErr]=useState('');const [loading,setLoading]=useState(false);
- 
+
   async function go(){
     setLoading(true);setErr('');
     try{
@@ -166,7 +165,7 @@ function Login({onLogin}){
     }catch{setErr('ERROR DE CONEXIÓN. INTENTÁ DE NUEVO.');}
     setLoading(false);
   }
- 
+
   return (
     <div style={{minHeight:'100vh',background:`linear-gradient(160deg,${C.bg0} 0%,${C.bg1} 40%,#071F1A 100%)`,
       display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
@@ -188,20 +187,20 @@ function Login({onLogin}){
     </div>
   );
 }
- 
+
 // ── ADMIN ─────────────────────────────────────────────────────────────────────
 function Admin({user,onLogout}){
   const [tab,setTab]=useState('lineas');
   const [lineas,setLineas]=useState([]);const [loading,setLoading]=useState(true);
   const [editando,setEditando]=useState(null);const [nueva,setNueva]=useState(false);
   const [embajadores,setEmbajadores]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);const [sols,setSols]=useState([]);const [legajoAdmin,setLegajoAdmin]=useState(null);const [moduloE,setModuloE]=useState(null);const [cuentaCte,setCuentaCte]=useState(null);
- 
+
   useEffect(()=>{cargar();},[]);
   async function cargar(){
     setLoading(true);
     setLineas(await db.getLineas()||[]);
     setEmbajadores(await db.getEmbajadores()||[]);
-   setSols && setSols(await db.getSolicitudes()||[]);
+    setSols(await db.getSolicitudes()||[]);
     setLoading(false);
   }
   async function guardarLinea(l){await db.saveLinea(l);await cargar();setEditando(null);setNueva(false);}
@@ -209,13 +208,13 @@ function Admin({user,onLogout}){
   async function eliminarLinea(id){if(!window.confirm('¿ELIMINAR ESTA LÍNEA?'))return;await db.deleteLinea(id);await cargar();}
   async function guardarEmb(e){await db.saveEmbajador(e);await cargar();setNuevoEmb(false);}
   async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE EMBAJADOR?'))return;await db.deleteEmbajador(id);await cargar();}
- 
+
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
   if(nuevoEmb) return <FormEmbajador onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
-if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
+  if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
   if(moduloE) return <ModuloE sol={moduloE} user={user} onVolver={()=>setModuloE(null)} onActualizar={cargar}/>;
   if(cuentaCte) return <CuentaCorriente credito={cuentaCte} user={user} onVolver={()=>setCuentaCte(null)} onActualizar={cargar}/>;
- 
+
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
@@ -316,23 +315,23 @@ if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()
     </div>
   );
 }
- 
+
 // ── FORM LÍNEA ────────────────────────────────────────────────────────────────
 function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
   const nuevo=!linea;
   const [f,setF]=useState(linea?{...linea,plazosStr:(linea.plazos||[]).join(', '),docsReqStr:(linea.docsReq||[]).join('\n'),docsOpcStr:(linea.docsOpc||[]).join('\n')}
     :{id:`linea-${Date.now()}`,nombre:'',descripcion:'',activa:true,montoMin:'',montoMax:'',tna:'',seguro:'',comisiones:'',gastos:'',plazosStr:'',docsReqStr:'',docsOpcStr:''});
- 
+
   const tea=f.tna?calcTEA(parseFloat(f.tna)):null;
   const cft=(f.tna&&f.seguro!==''&&f.comisiones!==''&&f.gastos!=='')?calcCFT(parseFloat(f.tna),parseFloat(f.seguro||0),parseFloat(f.comisiones||0),parseFloat(f.gastos||0)):null;
   const gastoEjemplo=f.gastos?1000000*(parseFloat(f.gastos)/100)*IVA:0;
- 
+
   function toLinea(){return{...f,montoMin:parseFloat(f.montoMin),montoMax:parseFloat(f.montoMax),tna:parseFloat(f.tna),
     seguro:parseFloat(f.seguro||0),comisiones:parseFloat(f.comisiones||0),gastos:parseFloat(f.gastos||0),
     plazos:f.plazosStr.split(',').map(x=>parseInt(x.trim())).filter(Boolean),
     docsReq:f.docsReqStr.split('\n').map(x=>x.trim()).filter(Boolean),
     docsOpc:f.docsOpcStr.split('\n').map(x=>x.trim()).filter(Boolean)};}
- 
+
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
@@ -353,7 +352,7 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
               <span style={{fontSize:11,fontWeight:700,color:f.activa?C.green:C.text3,letterSpacing:'0.06em',textTransform:'uppercase'}}>{f.activa?'ACTIVA — VISIBLE PARA EMBAJADORES':'INACTIVA'}</span>
             </div>
           </div>
- 
+
           <div style={{background:'rgba(255,255,255,0.03)',borderRadius:10,padding:18,border:`1px solid ${C.border}`,marginBottom:20}}>
             <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:14}}>TASAS Y COSTOS — TODOS CON IVA 21%</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:'0 12px'}}>
@@ -393,7 +392,7 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
               </div>
             )}
           </div>
- 
+
           <div style={{marginBottom:16}}>
             <label style={{display:'block',fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>DOCUMENTOS OBLIGATORIOS *</label>
             <textarea value={f.docsReqStr} onChange={e=>setF({...f,docsReqStr:e.target.value})}
@@ -418,7 +417,7 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
     </div>
   );
 }
- 
+
 // ── FORM EMBAJADOR ────────────────────────────────────────────────────────────
 function FormEmbajador({onGuardar,onCancelar,user,onLogout}){
   const [f,setF]=useState({nombre:'',apellido:'',codigo:'',zona:'',email:'',telefono:'',password:''});
@@ -450,13 +449,13 @@ function FormEmbajador({onGuardar,onCancelar,user,onLogout}){
     </div>
   );
 }
- 
+
 // ── PANEL INFORMES (BCRA + NOSIS de solicitudes ya analizadas) ────────────────
 function PanelInformes({sols}){
   const [sel,setSel]=useState(null);
   const conInformes=sols.filter(s=>s.bcra_data||s.nosis_data);
   const colorSit=sit=>sit===1?C.green:sit===2?C.gold:C.red;
- 
+
   if(sel){
     const s=sel;
     const cli=s.cliente||{};
@@ -472,7 +471,7 @@ function PanelInformes({sols}){
           </div>
           <div style={{marginLeft:'auto'}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></div>
         </div>
- 
+
         {/* Resumen crédito */}
         <Card style={{padding:18,marginBottom:16}}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
@@ -485,7 +484,7 @@ function PanelInformes({sols}){
           </div>
           {s.obs&&<div style={{marginTop:14,padding:'10px 14px',background:'rgba(255,255,255,0.03)',borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,color:C.text2,fontWeight:400,whiteSpace:'pre-line'}}>{s.obs}</div>}
         </Card>
- 
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           {/* BCRA */}
           <Card style={{padding:20}}>
@@ -520,7 +519,7 @@ function PanelInformes({sols}){
               <div style={{fontSize:12,color:C.text3,fontWeight:400,fontStyle:'italic'}}>Informe BCRA no disponible para esta solicitud</div>
             )}
           </Card>
- 
+
           {/* Nosis */}
           <Card style={{padding:20}}>
             <div style={{fontSize:12,fontWeight:900,color:C.gold,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>BUREAU NOSIS</div>
@@ -562,7 +561,7 @@ function PanelInformes({sols}){
       </div>
     );
   }
- 
+
   return(
     <div>
       <div style={{fontSize:18,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:6}}>INFORMES CREDITICIOS</div>
@@ -602,34 +601,33 @@ function PanelInformes({sols}){
     </div>
   );
 }
- 
+
 // ── ANALISTA ──────────────────────────────────────────────────────────────────
 function Analista({user,onLogout}){
   const [tab,setTab]=useState('solicitudes');
-  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);const [legajo,setLegajo]=useState(null);const [legajo,setLegajo]=useState(null);
+  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);const [legajo,setLegajo]=useState(null);
   useEffect(()=>{cargar();const iv=setInterval(cargar,15000);return()=>clearInterval(iv);},[]);
   async function cargar(){setSols(await db.getSolicitudes());setLoading(false);}
   async function resolver(id,estado,obs){
     await db.updateSolicitud(id,{estado,estado_texto:estado==='aprobado'?'APROBADO — PENDIENTE FIRMA':'RECHAZADO',obs,analista:user.nombre,fecha_res:new Date().toLocaleDateString('es-AR')});
     await cargar();setDetalle(null);
   }
- 
+
   if(moduloB) return <ModuloB sol={moduloB} user={user} onVolver={()=>setModuloB(null)} onActualizar={cargar}/>;
   if(moduloC) return <ModuloC sol={moduloC} user={user} onVolver={()=>setModuloC(null)} onActualizar={cargar}/>;
-if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegajo(null)} onActualizar={cargar}/>;
-if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegajo(null)} onActualizar={cargar}/>;
-  
+  if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegajo(null)} onActualizar={cargar}/>;
+
   const list=sols.filter(s=>filtro==='todas'||s.estado===filtro);
   const cnt={p:sols.filter(s=>s.estado==='pendiente').length,a:sols.filter(s=>s.estado==='aprobado').length,r:sols.filter(s=>s.estado==='rechazado').length};
   const rowColor={aprobado:'rgba(74,224,138,0.04)',rechazado:'rgba(224,80,80,0.04)',pendiente:'transparent'};
   const rowBorder={aprobado:C.green,rechazado:C.red,pendiente:C.gold};
- 
+
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL DE ANÁLISIS" user={user} onLogout={onLogout}/>
       <Tabs tabs={[['solicitudes','SOLICITUDES'],['informes','INFORMES BCRA / NOSIS'],['legajos','LEGAJOS']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:1100,margin:'0 auto'}}>
- 
+
         {tab==='solicitudes'&&(
           <>
             <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14,marginBottom:24}}>
@@ -685,15 +683,15 @@ if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegaj
             )}
           </>
         )}
- 
+
         {tab==='informes'&&<PanelInformes sols={sols}/>}
-         {tab==='legajos'&&<PanelLegajos sols={sols} user={user} onVerLegajo={setLegajo}/>}
+        {tab==='legajos'&&<PanelLegajos sols={sols} user={user} onVerLegajo={setLegajo}/>}
       </div>
       {detalle&&<Modal sol={detalle} onClose={()=>setDetalle(null)} onResolver={resolver}/>}
     </div>
   );
 }
- 
+
 // ── EMBAJADOR ─────────────────────────────────────────────────────────────────
 function Embajador({user,onLogout}){
   const [tab,setTab]=useState('nueva');const [lineas,setLineas]=useState([]);const [sols,setSols]=useState([]);const [detalle,setDetalle]=useState(null);
@@ -727,30 +725,30 @@ function Embajador({user,onLogout}){
     </div>
   );
 }
- 
+
 // ── NUEVA SOLICITUD ───────────────────────────────────────────────────────────
 function NuevaSol({user,lineas,onEnviada}){
   const [paso,setPaso]=useState(1);const [lid,setLid]=useState('');const [plazo,setPlazo]=useState('');
   const [s1,setS1]=useState('');const [s2,setS2]=useState('');const [s3,setS3]=useState('');
   const [monto,setMonto]=useState('');const [f,setF]=useState({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});
   const [docs,setDocs]=useState({});const [env,setEnv]=useState(false);const [ok,setOk]=useState(false);
- 
+
   const linea=lineas.find(l=>l.id===lid);
   const prom=s1&&s2&&s3?(parseFloat(s1)+parseFloat(s2)+parseFloat(s3))/3:0;
   const cmax=prom*0.30;
   const cuota=linea&&monto&&plazo?calcCuota(parseFloat(monto),linea.tna,linea.seguro||0,linea.comisiones||0,parseInt(plazo)):0;
   const desembolso=linea&&monto?calcDesembolso(parseFloat(monto),linea.gastos||0):0;
   const capOK=cmax>0&&cuota>0&&cuota<=cmax;
- 
+
   async function enviar(){
     setEnv(true);
     await db.saveSolicitud({id:`SOL-${Date.now()}`,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docs),estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS'});
     setEnv(false);setOk(true);
   }
   const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});};
- 
+
   if(ok) return <Card style={{padding:60,textAlign:'center'}}><div style={{fontSize:52,marginBottom:16}}>✅</div><div style={{fontSize:20,fontWeight:900,color:C.green,marginBottom:8,letterSpacing:'0.06em',textTransform:'uppercase'}}>SOLICITUD ENVIADA</div><div style={{color:C.text2,marginBottom:28,fontWeight:400}}>Enviada al equipo de análisis.</div><Btn onClick={reset} variant="ghost">CARGAR OTRA SOLICITUD</Btn></Card>;
- 
+
   const steps=['LÍNEA Y SIMULACIÓN','DATOS DEL CLIENTE','DOCUMENTACIÓN','CONFIRMAR'];
   return (
     <div>
@@ -765,7 +763,7 @@ function NuevaSol({user,lineas,onEnviada}){
           </div>
         ))}
       </div>
- 
+
       {paso===1&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:20}}>LÍNEA DE CRÉDITO Y SIMULACIÓN</div>
         {!lineas.length?<div style={{padding:20,background:C.goldL,borderRadius:8,color:C.gold,fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>NO HAY LÍNEAS ACTIVAS. CONTACTÁ AL ADMINISTRADOR.</div>:<>
@@ -811,7 +809,7 @@ function NuevaSol({user,lineas,onEnviada}){
           <Btn onClick={()=>setPaso(2)} disabled={!linea||!monto||!plazo||!s1||!s2||!s3||!capOK}>CONTINUAR →</Btn>
         </div>
       </Card>}
- 
+
       {paso===2&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:20}}>DATOS DEL CLIENTE</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 20px'}}>
@@ -830,7 +828,7 @@ function NuevaSol({user,lineas,onEnviada}){
           <Btn onClick={()=>setPaso(3)} disabled={!f.nombre||!f.apellido||!f.dni||!f.cuil||!f.email||!f.tel||!f.emp||!f.cbu}>CONTINUAR →</Btn>
         </div>
       </Card>}
- 
+
       {paso===3&&linea&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:20}}>DOCUMENTACIÓN</div>
         <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>OBLIGATORIOS</div>
@@ -864,7 +862,7 @@ function NuevaSol({user,lineas,onEnviada}){
           <Btn onClick={()=>setPaso(4)} disabled={(linea.docsReq||[]).some(d=>!docs[d])}>CONTINUAR →</Btn>
         </div>
       </Card>}
- 
+
       {paso===4&&linea&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:22}}>RESUMEN Y CONFIRMACIÓN</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
@@ -896,7 +894,7 @@ function NuevaSol({user,lineas,onEnviada}){
     </div>
   );
 }
- 
+
 // ── MODAL DETALLE ─────────────────────────────────────────────────────────────
 function Modal({sol:s,onClose,onResolver,readOnly}){
   const [obs,setObs]=useState(s.obs||'');const [conf,setConf]=useState(null);
@@ -956,7 +954,7 @@ function Modal({sol:s,onClose,onResolver,readOnly}){
     </div>
   );
 }
- 
+
 // ── APP ───────────────────────────────────────────────────────────────────────
 function AppPrincipal(){
   const [user,setUser]=useState(null);
@@ -965,7 +963,7 @@ function AppPrincipal(){
   if(user.rol==='analista') return <Analista user={user} onLogout={()=>setUser(null)}/>;
   return <Embajador user={user} onLogout={()=>setUser(null)}/>;
 }
- 
+
 export default function App(){
   return (
     <Routes>
@@ -974,17 +972,17 @@ export default function App(){
     </Routes>
   );
 }
- 
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MÓDULO B — PRE-APROBACIÓN CREDITICIA
 // ══════════════════════════════════════════════════════════════════════════════
- 
+
 function getNosisVar(variables, nombre) {
   if (!variables) return null;
   const v = variables.find(x => x.Nombre === nombre);
   return v ? v.Valor : null;
 }
- 
+
 function parsearNosis(data) {
   const contenido = data?.Contenido;
   const resultado = contenido?.Resultado;
@@ -1023,7 +1021,7 @@ function parsearNosis(data) {
     cneTiene: getNosisVar(arr, 'CNE_CertificadoTiene'),
   };
 }
- 
+
 function parsearBCRA(data) {
   if (!data || data.status !== 200) return { ok: false, error: 'CUIL no encontrado en BCRA' };
   const resultados = data.results?.periodos?.[0]?.entidades || [];
@@ -1036,7 +1034,7 @@ function parsearBCRA(data) {
   });
   return { ok: true, peorSit, deudas, cantEntidades: resultados.length };
 }
- 
+
 function evaluarCredito(bcra, nosis, prom30) {
   const alertas = [];
   const rechazos = [];
@@ -1063,7 +1061,7 @@ function evaluarCredito(bcra, nosis, prom30) {
   const conObservaciones = aprobado && alertas.length > 0;
   return { aprobado, conObservaciones, rechazos, alertas };
 }
- 
+
 function ModuloB({ sol, onVolver, onActualizar, user }) {
   const [loading, setLoading] = useState(false);
   const [bcraData, setBcraData] = useState(null);
@@ -1072,11 +1070,11 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
   const [obs, setObs] = useState('');
   const [conf, setConf] = useState(null);
   const [enviando, setEnviando] = useState(false);
- 
+
   const cli = sol.cliente || {};
   const prom = sol.prom_sueldo || 0;
   const prom30 = prom * 0.30;
- 
+
   async function consultar() {
     setLoading(true); setError(''); setBcraData(null); setNosisData(null);
     try {
@@ -1091,7 +1089,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
     }
     setLoading(false);
   }
- 
+
   async function resolver(estado) {
     setEnviando(true);
     const bcraResumen = bcraData ? `BCRA Sit. ${bcraData.peorSit} | ${bcraData.cantEntidades} entidad(es)` : 'BCRA: no consultado';
@@ -1110,12 +1108,12 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
     onActualizar();
     onVolver();
   }
- 
+
   const bcra = bcraData;
   const nosis = nosisData;
   const eval_ = (bcra || nosis) ? evaluarCredito(bcra || { ok: false }, nosis || { ok: false }, prom30) : null;
   const colorSit = sit => sit === 1 ? C.green : sit === 2 ? C.gold : C.red;
- 
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg2 }}>
       <Hdr title="ANÁLISIS CREDITICIO — MÓDULO B" user={user} onLogout={() => {}} />
@@ -1127,7 +1125,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
             <div style={{ fontSize: 12, color: C.text3, marginTop: 2, fontWeight: 400 }}>{sol.id} · CUIL {cli.cuil} · DNI {cli.dni}</div>
           </div>
         </div>
- 
+
         <Card style={{ padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
             {[['LÍNEA', sol.linea_nombre],['MONTO', fmt(sol.monto)],['PLAZO', `${sol.plazo} MESES`],['CUOTA EST.', fmt(sol.cuota)],['SUELDO PROM.', fmt(prom)],['30% SUELDO', fmt(prom30)],['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],['EMBAJADOR', sol.emb_nombre]].map(([l, v]) => (
@@ -1138,7 +1136,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
             ))}
           </div>
         </Card>
- 
+
         {!bcra && !nosis && (
           <Card style={{ padding: 32, textAlign: 'center', marginBottom: 16 }}>
             <div style={{ fontSize: 14, color: C.text2, marginBottom: 20, fontWeight: 400 }}>Consultá BCRA y Nosis automáticamente con el CUIL del cliente.</div>
@@ -1148,14 +1146,14 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
             </Btn>
           </Card>
         )}
- 
+
         {loading && (
           <Card style={{ padding: 40, textAlign: 'center', marginBottom: 16 }}>
             <div style={{ fontSize: 14, color: C.gold, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>CONSULTANDO BCRA Y NOSIS...</div>
             <div style={{ fontSize: 11, color: C.text3, marginTop: 8, fontWeight: 400 }}>Esto puede demorar hasta 30 segundos</div>
           </Card>
         )}
- 
+
         {(bcra || nosis) && (
           <>
             {eval_ && (
@@ -1173,7 +1171,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                 {eval_.alertas.map((a, i) => <div key={i} style={{ fontSize: 12, color: C.gold, fontWeight: 700, padding: '4px 0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>⚠️ {a}</div>)}
               </Card>
             )}
- 
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <Card style={{ padding: 20 }}>
                 <div style={{ fontSize: 12, fontWeight: 900, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>CENTRAL DE DEUDORES BCRA</div>
@@ -1203,7 +1201,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                   <div style={{ fontSize: 12, color: C.text3, fontWeight: 400 }}>No figura en la Central de Deudores del BCRA</div>
                 )}
               </Card>
- 
+
               <Card style={{ padding: 20 }}>
                 <div style={{ fontSize: 12, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>BUREAU NOSIS</div>
                 {nosis?.ok ? (
@@ -1253,11 +1251,11 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                 )}
               </Card>
             </div>
- 
+
             <div style={{ textAlign: 'right', marginBottom: 16 }}>
               <Btn onClick={consultar} disabled={loading} variant="sec" style={{ fontSize: 11 }}>{loading ? 'CONSULTANDO...' : '↻ VOLVER A CONSULTAR'}</Btn>
             </div>
- 
+
             <Card style={{ padding: 24 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>RESOLUCIÓN DEL ANALISTA</div>
               <div style={{ marginBottom: 14 }}>
@@ -1289,40 +1287,40 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
     </div>
   );
 }
- 
- 
+
+
 // Para usar este módulo:
 // 1. Agregar en App.js dentro del componente Analista:
 //    const [moduloC, setModuloC] = useState(null);
 //    if (moduloC) return <ModuloC sol={moduloC} user={user} onVolver={() => setModuloC(null)} onActualizar={cargar} />;
 // 2. En la tabla de solicitudes, para solicitudes aprobadas agregar botón:
 //    onClick={() => s.estado === 'aprobado' ? setModuloC(s) : setDetalle(s)}
- 
+
 const EMPRESA = {
   nombre: 'AUTOLOGROS S.A.',
-  cuit: '30-71934732-7', // completar
+  cuit: '30-71934732-7',
   domicilio: 'Lavalle 1390, Piso 3, Oficina B, Ciudad Autónoma de Buenos Aires',
   representante: 'Nicolás Issaharoff',
   cargo: 'Presidente',
   jurisdiccion: 'Ciudad Autónoma de Buenos Aires',
 };
- 
+
 const IVA_MOD = 1.21;
- 
+
 function fmtFecha(fecha) {
   const d = new Date();
   return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
 }
- 
+
 function numALetras(n) {
   const unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE',
     'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
   const decenas = ['', '', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
   const centenas = ['', 'CIEN', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
- 
+
   if (n === 0) return 'CERO';
   if (n < 0) return 'MENOS ' + numALetras(-n);
- 
+
   let resultado = '';
   if (n >= 1000000) {
     const mill = Math.floor(n / 1000000);
@@ -1348,70 +1346,70 @@ function numALetras(n) {
   }
   return resultado.trim();
 }
- 
+
 function generarMutuo(sol) {
   const cli = sol.cliente || {};
   const fecha = fmtFecha();
   const montoLetras = numALetras(Math.round(sol.monto));
   const cuotaLetras = numALetras(Math.round(sol.cuota));
   const moraTasa = ((sol.tna || 0) * 1.5).toFixed(2);
- 
+
   return `CONTRATO DE MUTUO CON INTERÉS
 (Ley 25.065 y Código Civil y Comercial de la Nación — Arts. 1525 a 1532)
- 
+
 En la Ciudad Autónoma de Buenos Aires, a los ${fecha}, entre:
- 
+
 MUTUANTE: AUTOLOGROS S.A., CUIT ${EMPRESA.cuit}, con domicilio en ${EMPRESA.domicilio}, representada en este acto por su ${EMPRESA.cargo}, Sr. ${EMPRESA.representante}, en adelante "LA EMPRESA"; y
- 
+
 MUTUARIO: ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil}, con domicilio en el declarado al momento de la solicitud, en adelante "EL CLIENTE";
- 
+
 Las partes acuerdan celebrar el presente Contrato de Mutuo con Interés conforme a las siguientes cláusulas:
- 
+
 ──────────────────────────────────────────────────────────
 PRIMERA — OBJETO
 ──────────────────────────────────────────────────────────
 LA EMPRESA entrega en préstamo a EL CLIENTE la suma de PESOS ${montoLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))}), que este declara recibir en este acto de conformidad, mediante acreditación en la cuenta CBU/CVU N° ${cli.cbu} declarada por EL CLIENTE, quien acepta en su totalidad las condiciones del presente contrato.
- 
+
 ──────────────────────────────────────────────────────────
 SEGUNDA — DESTINO DE LOS FONDOS
 ──────────────────────────────────────────────────────────
 Los fondos otorgados en préstamo serán destinados a uso personal del MUTUARIO. EL CLIENTE declara que los fondos recibidos no provienen ni serán destinados a actividades ilícitas, comprometiéndose a su uso lícito conforme a la legislación argentina vigente.
- 
+
 ──────────────────────────────────────────────────────────
 TERCERA — PLAZO Y FORMA DE DEVOLUCIÓN
 ──────────────────────────────────────────────────────────
 EL CLIENTE se obliga a devolver el capital prestado más los intereses pactados en ${sol.plazo} (${numALetras(sol.plazo)}) cuotas mensuales, iguales y consecutivas de PESOS ${cuotaLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(sol.cuota))}), que incluyen capital, intereses y demás accesorios con IVA.
- 
+
 El vencimiento de la primera cuota operará a los treinta (30) días corridos desde la acreditación del préstamo. Las cuotas subsiguientes vencerán el mismo día de cada mes calendario.
- 
+
 ──────────────────────────────────────────────────────────
 CUARTA — TASA DE INTERÉS
 ──────────────────────────────────────────────────────────
 Se aplica una Tasa Nominal Anual (TNA) del ${sol.tna}% (${numALetras(Math.round(sol.tna))} por ciento), con capitalización mensual. Sobre los intereses se aplica el Impuesto al Valor Agregado (IVA) a la tasa vigente del 21%.
- 
+
 La Tasa Efectiva Anual (TEA) resultante, incluido el IVA sobre intereses, es del ${(((Math.pow(1 + (sol.tna/100/12)*IVA_MOD, 12) - 1) * 100)).toFixed(2)}%.
- 
+
 El Costo Financiero Total (CFT) informado al cliente conforme Comunicación "A" BCRA es del ${sol.cft || '⏳ PENDIENTE'}%.
- 
+
 ──────────────────────────────────────────────────────────
 QUINTA — INTERESES MORATORIOS Y PUNITORIOS
 ──────────────────────────────────────────────────────────
 En caso de mora en el pago de cualquier cuota, se devengarán automáticamente intereses moratorios a una tasa equivalente al ciento cincuenta por ciento (150%) de la TNA pactada, es decir ${moraTasa}% TNA, más IVA, desde la fecha de vencimiento hasta el efectivo pago, sin necesidad de interpelación judicial o extrajudicial previa.
- 
+
 La mora se producirá en forma automática por el solo vencimiento del plazo, conforme Art. 886 del Código Civil y Comercial de la Nación.
- 
+
 ──────────────────────────────────────────────────────────
 SEXTA — FORMA DE PAGO Y DÉBITO AUTOMÁTICO
 ──────────────────────────────────────────────────────────
 El pago de las cuotas se realizará mediante débito automático sobre el saldo disponible en la cuenta CBU/CVU N° ${cli.cbu} declarada por EL CLIENTE. EL CLIENTE se compromete expresamente a mantener saldo suficiente en dicha cuenta con una antelación mínima de cuarenta y ocho (48) horas al vencimiento de cada cuota.
- 
+
 La insuficiencia de fondos en la fecha de vencimiento constituirá mora automática en los términos de la Cláusula Quinta.
- 
+
 ──────────────────────────────────────────────────────────
 SÉPTIMA — CANCELACIÓN ANTICIPADA
 ──────────────────────────────────────────────────────────
 EL CLIENTE podrá cancelar anticipadamente el préstamo en cualquier momento, abonando el capital adeudado más los intereses devengados hasta la fecha de cancelación efectiva. No se cobrarán penalidades por cancelación anticipada, conforme Art. 1388 del Código Civil y Comercial de la Nación y Ley 25.065.
- 
+
 ──────────────────────────────────────────────────────────
 OCTAVA — INFORMACIÓN Y PRIVACIDAD
 ──────────────────────────────────────────────────────────
@@ -1419,81 +1417,81 @@ EL CLIENTE autoriza expresamente a LA EMPRESA a:
 a) Consultar y reportar su situación crediticia ante bases de datos de información crediticia (Nosis, BCRA Central de Deudores y similares);
 b) Informar la mora o incumplimiento a los organismos correspondientes;
 c) Tratar sus datos personales conforme la Ley 25.326 de Protección de Datos Personales, exclusivamente para la gestión del presente préstamo.
- 
+
 ──────────────────────────────────────────────────────────
 NOVENA — DOMICILIOS
 ──────────────────────────────────────────────────────────
 LA EMPRESA constituye domicilio en ${EMPRESA.domicilio}.
 EL CLIENTE constituye domicilio en el declarado al momento de la solicitud de crédito, aceptando como válidas todas las notificaciones que allí se realicen, incluyendo las efectuadas por medios electrónicos al correo ${cli.email} y al teléfono ${cli.tel}.
- 
+
 ──────────────────────────────────────────────────────────
 DÉCIMA — JURISDICCIÓN
 ──────────────────────────────────────────────────────────
 Para cualquier controversia derivada del presente contrato, las partes se someten a la jurisdicción de los Tribunales Ordinarios de la ${EMPRESA.jurisdiccion}, renunciando expresamente a cualquier otro fuero o jurisdicción que pudiera corresponderles.
- 
+
 ──────────────────────────────────────────────────────────
 DÉCIMO PRIMERA — FIRMA DIGITAL
 ──────────────────────────────────────────────────────────
 El presente contrato es suscripto mediante firma digital conforme Ley 25.506 de Firma Digital. La aceptación electrónica por parte de EL CLIENTE tiene plena validez jurídica y produce los mismos efectos que la firma ológrafa.
- 
+
 En prueba de conformidad, las partes firman el presente en la Ciudad Autónoma de Buenos Aires, en la fecha indicada al inicio.
- 
- 
+
+
 POR AUTOLOGROS S.A.                    EL CLIENTE
 ${EMPRESA.representante}               ${cli.nombre} ${cli.apellido}
 ${EMPRESA.cargo}                       DNI ${cli.dni}
- 
- 
+
+
 ________________________________________    ________________________________________
 FIRMA EMPRESA                               FIRMA CLIENTE`;
 }
- 
+
 function generarPagare(sol) {
   const cli = sol.cliente || {};
   const fecha = fmtFecha();
   const montoLetras = numALetras(Math.round(sol.monto));
   const totalConIntereses = sol.cuota * sol.plazo;
   const totalLetras = numALetras(Math.round(totalConIntereses));
- 
+
   return `PAGARÉ SIN PROTESTO
 (Art. 101 y ss. Decreto-Ley 5965/63 — Ley Cambiaria Argentina)
- 
+
 LUGAR DE EMISIÓN: Ciudad Autónoma de Buenos Aires
 FECHA DE EMISIÓN: ${fecha}
 MONTO: PESOS ${totalLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(totalConIntereses))})
- 
+
 ──────────────────────────────────────────────────────────
- 
+
 Yo, ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil}, con domicilio declarado ante AUTOLOGROS S.A., me obligo a pagar INCONDICIONALMENTE y SIN PROTESTO a la orden de AUTOLOGROS S.A., CUIT ${EMPRESA.cuit}, o a quien sus derechos represente, en el domicilio sito en ${EMPRESA.domicilio}, Ciudad Autónoma de Buenos Aires, la suma de PESOS ${totalLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(totalConIntereses))}), correspondiente al total de capital e intereses del préstamo otorgado mediante Contrato de Mutuo de fecha ${fecha}.
- 
+
 El pago se realizará en ${sol.plazo} cuotas mensuales de PESOS ${numALetras(Math.round(sol.cuota))} ($${new Intl.NumberFormat('es-AR').format(Math.round(sol.cuota))}), venciendo la primera a los treinta (30) días corridos de la fecha de acreditación del préstamo.
- 
+
 TASA DE INTERÉS: TNA ${sol.tna}% + IVA 21%.
- 
+
 CLÁUSULA SIN PROTESTO: El presente pagaré lleva insertada la cláusula "SIN PROTESTO" conforme Art. 50 del Decreto-Ley 5965/63, eximiendo al portador de efectuar el protesto por falta de pago para conservar las acciones cambiarias.
- 
+
 LUGAR DE PAGO: ${EMPRESA.domicilio}, Ciudad Autónoma de Buenos Aires.
- 
+
 JURISDICCIÓN: Tribunales Ordinarios de la Ciudad Autónoma de Buenos Aires.
- 
+
 El presente título tiene fuerza ejecutiva conforme Art. 520 y concordantes del Código Procesal Civil y Comercial de la Nación.
- 
+
 ──────────────────────────────────────────────────────────
- 
+
 Emisor:
- 
+
 Nombre y Apellido: ${cli.nombre} ${cli.apellido}
 DNI: ${cli.dni}
 CUIL: ${cli.cuil}
 Domicilio: ${cli.emp || 'según declaración en solicitud'}
- 
- 
+
+
 ________________________________________
 FIRMA DEL DEUDOR
 ${cli.nombre} ${cli.apellido}
 DNI ${cli.dni}`;
 }
- 
+
 // ── Componente principal Módulo C ─────────────────────────────────────────────
 function ModuloC({ sol, user, onVolver, onActualizar }) {
   const C = {
@@ -1504,26 +1502,26 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
     blue:'#4A9AE0', green:'#4AE08A', greenL:'rgba(74,224,138,0.08)', greenB:'rgba(74,224,138,0.15)',
     red:'#E05050', redL:'rgba(224,80,80,0.08)', redB:'rgba(224,80,80,0.15)',
   };
- 
+
   const [doc, setDoc] = useState('mutuo'); // 'mutuo' | 'pagare'
   const [firmado, setFirmado] = useState({ mutuo: false, pagare: false });
   const [paso, setPaso] = useState('docs'); // 'docs' | 'firma_cliente' | 'enviado'
   const [enviando, setEnviando] = useState(false);
   const [linkFirma] = useState(`https://autologros-app.vercel.app/firma/${sol.id}`);
- 
+
   const cli = sol.cliente || {};
   const textoMutuo = generarMutuo(sol);
   const textoPagare = generarPagare(sol);
   const textoActual = doc === 'mutuo' ? textoMutuo : textoPagare;
   const ambosListos = firmado.mutuo && firmado.pagare;
- 
+
   const whatsappMsg = encodeURIComponent(
     `Hola ${cli.nombre}, le escribimos desde AUTOLOGROS S.A.\n\nSu préstamo por $${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))} ha sido PRE-APROBADO.\n\nPara completar el proceso, necesitamos que firme digitalmente el Contrato de Mutuo y el Pagaré.\n\nAcceda al siguiente enlace seguro:\n${linkFirma}\n\nEste enlace es personal e intransferible. Ante cualquier consulta comuníquese con nosotros.\n\nGracias,\nAutologros S.A.`
   );
   const mailMsg = `mailto:${cli.email}?subject=AUTOLOGROS S.A. — Firma de Documentos — Solicitud ${sol.id}&body=${encodeURIComponent(
     `Estimado/a ${cli.nombre} ${cli.apellido},\n\nNos comunicamos desde AUTOLOGROS S.A. para informarle que su solicitud de préstamo por $${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))} ha sido PRE-APROBADA.\n\nPara continuar con el proceso, necesitamos que proceda a la firma digital del Contrato de Mutuo y el Pagaré correspondiente.\n\nAcceda al siguiente enlace para firmar sus documentos:\n${linkFirma}\n\nEste enlace es personal, confidencial e intransferible.\n\nAntes de firmar, le recomendamos leer atentamente ambos documentos.\n\nAnte cualquier consulta no dude en contactarnos.\n\nSaludos cordiales,\n${EMPRESA.representante}\n${EMPRESA.cargo}\nAUTOLOGROS S.A.\n${EMPRESA.domicilio}`
   )}`;
- 
+
   const Card = ({ children, style }) => <div style={{ background: C.bg4, borderRadius: 12, border: `1px solid ${C.border}`, ...style }}>{children}</div>;
   const Btn = ({ onClick, children, variant = 'primary', disabled, style, full }) => {
     const vs = {
@@ -1544,7 +1542,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
       </button>
     );
   };
- 
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg2, fontFamily: 'system-ui, Arial, sans-serif' }}>
       {/* Header */}
@@ -1565,9 +1563,9 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
           <button onClick={onVolver} style={{ background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}`, padding: '7px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>← VOLVER</button>
         </div>
       </div>
- 
+
       <div style={{ padding: 28, maxWidth: 1100, margin: '0 auto' }}>
- 
+
         {/* Info cliente */}
         <Card style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
@@ -1585,7 +1583,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
             ))}
           </div>
         </Card>
- 
+
         {paso === 'docs' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
             {/* Panel izquierdo — selector y preview */}
@@ -1600,7 +1598,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                   </button>
                 ))}
               </div>
- 
+
               {/* Preview del documento */}
               <Card style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1615,7 +1613,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                   </pre>
                 </div>
               </Card>
- 
+
               {/* Botón firmar empresa */}
               <div style={{ marginTop: 14 }}>
                 {!firmado[doc] ? (
@@ -1632,7 +1630,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                 )}
               </div>
             </div>
- 
+
             {/* Panel derecho — estado y acciones */}
             <div>
               {/* Estado de firmas */}
@@ -1660,7 +1658,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                   <div style={{ fontSize: 20 }}>📱</div>
                 </div>
               </Card>
- 
+
               {/* Progreso */}
               <Card style={{ padding: 20, marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>PASOS DEL PROCESO</div>
@@ -1678,7 +1676,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                   </div>
                 ))}
               </Card>
- 
+
               {/* Botón continuar */}
               {ambosListos && (
                 <Btn onClick={() => setPaso('envio')} variant="success" full style={{ fontSize: 13, padding: '14px' }}>
@@ -1693,7 +1691,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
             </div>
           </div>
         )}
- 
+
         {paso === 'envio' && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <Card style={{ padding: 32 }}>
@@ -1702,7 +1700,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                 <div style={{ fontSize: 16, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.06em' }}>ENVIAR LINK DE FIRMA AL CLIENTE</div>
                 <div style={{ fontSize: 12, color: C.text2, marginTop: 6, fontWeight: 400 }}>El cliente recibirá el link para revisar y firmar los documentos</div>
               </div>
- 
+
               {/* Info cliente */}
               <div style={{ background: C.bg3, borderRadius: 10, padding: 18, marginBottom: 24, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>DESTINATARIO</div>
@@ -1710,13 +1708,13 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                 <div style={{ fontSize: 12, color: C.text2, marginBottom: 3 }}>📧 {cli.email}</div>
                 <div style={{ fontSize: 12, color: C.text2 }}>📱 {cli.tel}</div>
               </div>
- 
+
               {/* Link de firma */}
               <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '12px 16px', marginBottom: 24 }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>LINK DE FIRMA (AUTOGENERADO)</div>
                 <div style={{ fontSize: 11, color: C.text, fontWeight: 700, wordBreak: 'break-all' }}>{linkFirma}</div>
               </div>
- 
+
               {/* Botones de envío */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                 <a href={`https://wa.me/${cli.tel?.replace(/[^0-9]/g, '')}?text=${whatsappMsg}`}
@@ -1731,7 +1729,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                   </button>
                 </a>
               </div>
- 
+
               <div style={{ display: 'flex', gap: 12 }}>
                 <button onClick={() => setPaso('docs')} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}`, padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   ← VOLVER A DOCUMENTOS
@@ -1752,7 +1750,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
             </Card>
           </div>
         )}
- 
+
         {paso === 'enviado' && (
           <div style={{ maxWidth: 500, margin: '60px auto', textAlign: 'center' }}>
             <Card style={{ padding: 48 }}>
@@ -1774,4 +1772,3 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
     </div>
   );
 }
-
