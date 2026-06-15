@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import FirmaCliente from './FirmaCliente';
 import LegajoDigital, { PanelLegajos } from './LegajoDigital';
+import ModuloE from './ModuloE_Desembolso';
+import ModuloF, { CuentaCorriente } from './ModuloF_Cartera';
+import ModuloH from './ModuloH_Reportes';
 import { db } from './supabase';
  
 // ── Cálculos financieros ──────────────────────────────────────────────────────
@@ -191,7 +194,7 @@ function Admin({user,onLogout}){
   const [tab,setTab]=useState('lineas');
   const [lineas,setLineas]=useState([]);const [loading,setLoading]=useState(true);
   const [editando,setEditando]=useState(null);const [nueva,setNueva]=useState(false);
-  const [embajadores,setEmbajadores]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);const [sols,setSols]=useState([]);const [legajoAdmin,setLegajoAdmin]=useState(null);
+  const [embajadores,setEmbajadores]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);const [sols,setSols]=useState([]);const [legajoAdmin,setLegajoAdmin]=useState(null);const [moduloE,setModuloE]=useState(null);const [cuentaCte,setCuentaCte]=useState(null);
  
   useEffect(()=>{cargar();},[]);
   async function cargar(){
@@ -210,11 +213,13 @@ function Admin({user,onLogout}){
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
   if(nuevoEmb) return <FormEmbajador onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
 if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
+  if(moduloE) return <ModuloE sol={moduloE} user={user} onVolver={()=>setModuloE(null)} onActualizar={cargar}/>;
+  if(cuentaCte) return <CuentaCorriente credito={cuentaCte} user={user} onVolver={()=>setCuentaCte(null)} onActualizar={cargar}/>;
  
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS']]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:960,margin:'0 auto'}}>
         {tab==='lineas'&&(
           <>
@@ -271,6 +276,8 @@ if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()
           </>
         )}
         {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin}/>}
+        {tab==='cartera'&&<ModuloF user={user} onVerCuenta={setCuentaCte}/>}
+        {tab==='reportes'&&<ModuloH user={user}/>}
         {tab==='embajadores'&&(
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
