@@ -191,13 +191,14 @@ function Admin({user,onLogout}){
   const [tab,setTab]=useState('lineas');
   const [lineas,setLineas]=useState([]);const [loading,setLoading]=useState(true);
   const [editando,setEditando]=useState(null);const [nueva,setNueva]=useState(false);
-  const [embajadores,setEmbajadores]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);
+  const [embajadores,setEmbajadores]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);const [sols,setSols]=useState([]);const [legajoAdmin,setLegajoAdmin]=useState(null);
  
   useEffect(()=>{cargar();},[]);
   async function cargar(){
     setLoading(true);
     setLineas(await db.getLineas()||[]);
     setEmbajadores(await db.getEmbajadores()||[]);
+   setSols && setSols(await db.getSolicitudes()||[]);
     setLoading(false);
   }
   async function guardarLinea(l){await db.saveLinea(l);await cargar();setEditando(null);setNueva(false);}
@@ -208,11 +209,12 @@ function Admin({user,onLogout}){
  
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
   if(nuevoEmb) return <FormEmbajador onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
+if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
  
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES']]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:960,margin:'0 auto'}}>
         {tab==='lineas'&&(
           <>
@@ -268,6 +270,7 @@ function Admin({user,onLogout}){
             })}
           </>
         )}
+        {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin}/>}
         {tab==='embajadores'&&(
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
