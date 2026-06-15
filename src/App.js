@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import FirmaCliente from './FirmaCliente';
+import LegajoDigital, { PanelLegajos } from './LegajoDigital';
 import { db } from './supabase';
  
 // ── Cálculos financieros ──────────────────────────────────────────────────────
@@ -595,7 +596,7 @@ function PanelInformes({sols}){
 // ── ANALISTA ──────────────────────────────────────────────────────────────────
 function Analista({user,onLogout}){
   const [tab,setTab]=useState('solicitudes');
-  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);
+  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);const [legajo,setLegajo]=useState(null);
   useEffect(()=>{cargar();const iv=setInterval(cargar,15000);return()=>clearInterval(iv);},[]);
   async function cargar(){setSols(await db.getSolicitudes());setLoading(false);}
   async function resolver(id,estado,obs){
@@ -605,6 +606,7 @@ function Analista({user,onLogout}){
  
   if(moduloB) return <ModuloB sol={moduloB} user={user} onVolver={()=>setModuloB(null)} onActualizar={cargar}/>;
   if(moduloC) return <ModuloC sol={moduloC} user={user} onVolver={()=>setModuloC(null)} onActualizar={cargar}/>;
+if(legajo) return <LegajoDigital sol={legajo} user={user} onVolver={()=>setLegajo(null)} onActualizar={cargar}/>;
   
   const list=sols.filter(s=>filtro==='todas'||s.estado===filtro);
   const cnt={p:sols.filter(s=>s.estado==='pendiente').length,a:sols.filter(s=>s.estado==='aprobado').length,r:sols.filter(s=>s.estado==='rechazado').length};
@@ -614,7 +616,7 @@ function Analista({user,onLogout}){
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL DE ANÁLISIS" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['solicitudes','SOLICITUDES'],['informes','INFORMES BCRA / NOSIS']]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[['solicitudes','SOLICITUDES'],['informes','INFORMES BCRA / NOSIS'],['legajos','LEGAJOS']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:1100,margin:'0 auto'}}>
  
         {tab==='solicitudes'&&(
@@ -674,6 +676,7 @@ function Analista({user,onLogout}){
         )}
  
         {tab==='informes'&&<PanelInformes sols={sols}/>}
+         {tab==='legajos'&&<PanelLegajos sols={sols} user={user} onVerLegajo={setLegajo}/>}
       </div>
       {detalle&&<Modal sol={detalle} onClose={()=>setDetalle(null)} onResolver={resolver}/>}
     </div>
