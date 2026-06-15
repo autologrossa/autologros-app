@@ -1,5 +1,5 @@
 
-jsimport { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import FirmaCliente from './FirmaCliente';
 import { db } from './supabase';
@@ -595,7 +595,7 @@ function PanelInformes({sols}){
 // ── ANALISTA ──────────────────────────────────────────────────────────────────
 function Analista({user,onLogout}){
   const [tab,setTab]=useState('solicitudes');
-  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);
+  const [sols,setSols]=useState([]);const [filtro,setFiltro]=useState('todas');const [loading,setLoading]=useState(true);const [detalle,setDetalle]=useState(null);const [moduloB,setModuloB]=useState(null);const [moduloC,setModuloC]=useState(null);const [moduloC,setModuloC]=useState(null);
   useEffect(()=>{cargar();const iv=setInterval(cargar,15000);return()=>clearInterval(iv);},[]);
   async function cargar(){setSols(await db.getSolicitudes());setLoading(false);}
   async function resolver(id,estado,obs){
@@ -604,6 +604,8 @@ function Analista({user,onLogout}){
   }
  
   if(moduloB) return <ModuloB sol={moduloB} user={user} onVolver={()=>setModuloB(null)} onActualizar={cargar}/>;
+  if(moduloC) return <ModuloC sol={moduloC} user={user} onVolver={()=>setModuloC(null)} onActualizar={cargar}/>;
+  if(moduloC) return <ModuloC sol={moduloC} user={user} onVolver={()=>setModuloC(null)} onActualizar={cargar}/>;
  
   const list=sols.filter(s=>filtro==='todas'||s.estado===filtro);
   const cnt={p:sols.filter(s=>s.estado==='pendiente').length,a:sols.filter(s=>s.estado==='aprobado').length,r:sols.filter(s=>s.estado==='rechazado').length};
@@ -648,7 +650,7 @@ function Analista({user,onLogout}){
                   </thead>
                   <tbody>
                     {list.map(s=>(
-                      <tr key={s.id} onClick={()=>s.estado==='pendiente'?setModuloB(s):setDetalle(s)}
+                      <tr key={s.id} onClick={()=>s.estado==='pendiente'?setModuloB(s):s.estado==='aprobado'?setModuloC(s):setDetalle(s)}
                         style={{background:rowColor[s.estado],cursor:'pointer',borderLeft:`3px solid ${rowBorder[s.estado]}`}}>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}>
                           <div style={{fontWeight:900,color:s.estado==='rechazado'?C.red:C.text,textTransform:'uppercase',letterSpacing:'0.03em',fontSize:12}}>{s.cliente?.nombre} {s.cliente?.apellido}</div>
@@ -943,12 +945,21 @@ function Modal({sol:s,onClose,onResolver,readOnly}){
 }
  
 // ── APP ───────────────────────────────────────────────────────────────────────
-export default function App(){
+function AppPrincipal(){
   const [user,setUser]=useState(null);
   if(!user) return <Login onLogin={setUser}/>;
   if(user.rol==='admin') return <Admin user={user} onLogout={()=>setUser(null)}/>;
   if(user.rol==='analista') return <Analista user={user} onLogout={()=>setUser(null)}/>;
   return <Embajador user={user} onLogout={()=>setUser(null)}/>;
+}
+ 
+export default function App(){
+  return (
+    <Routes>
+      <Route path="/firma/:token" element={<FirmaCliente/>}/>
+      <Route path="/*" element={<AppPrincipal/>}/>
+    </Routes>
+  );
 }
  
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1260,6 +1271,491 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
               )}
             </Card>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+ 
+ 
+// Para usar este módulo:
+// 1. Agregar en App.js dentro del componente Analista:
+//    const [moduloC, setModuloC] = useState(null);
+//    if (moduloC) return <ModuloC sol={moduloC} user={user} onVolver={() => setModuloC(null)} onActualizar={cargar} />;
+// 2. En la tabla de solicitudes, para solicitudes aprobadas agregar botón:
+//    onClick={() => s.estado === 'aprobado' ? setModuloC(s) : setDetalle(s)}
+ 
+const EMPRESA = {
+  nombre: 'AUTOLOGROS S.A.',
+  cuit: '30-XXXXXXXXX-X', // completar
+  domicilio: 'Lavalle 1390, Piso 3, Oficina B, Ciudad Autónoma de Buenos Aires',
+  representante: 'Nicolás Issaharoff',
+  cargo: 'Presidente',
+  jurisdiccion: 'Ciudad Autónoma de Buenos Aires',
+};
+ 
+const IVA_MOD = 1.21;
+ 
+function fmtFecha(fecha) {
+  const d = new Date();
+  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+ 
+function numALetras(n) {
+  const unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE',
+    'DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISÉIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
+  const decenas = ['', '', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+  const centenas = ['', 'CIEN', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+ 
+  if (n === 0) return 'CERO';
+  if (n < 0) return 'MENOS ' + numALetras(-n);
+ 
+  let resultado = '';
+  if (n >= 1000000) {
+    const mill = Math.floor(n / 1000000);
+    resultado += (mill === 1 ? 'UN MILLÓN' : numALetras(mill) + ' MILLONES') + ' ';
+    n %= 1000000;
+  }
+  if (n >= 1000) {
+    const miles = Math.floor(n / 1000);
+    resultado += (miles === 1 ? 'MIL' : numALetras(miles) + ' MIL') + ' ';
+    n %= 1000;
+  }
+  if (n >= 100) {
+    if (n === 100) resultado += 'CIEN ';
+    else resultado += centenas[Math.floor(n / 100)] + ' ';
+    n %= 100;
+  }
+  if (n >= 20) {
+    resultado += decenas[Math.floor(n / 10)];
+    if (n % 10 !== 0) resultado += ' Y ' + unidades[n % 10];
+    resultado += ' ';
+  } else if (n > 0) {
+    resultado += unidades[n] + ' ';
+  }
+  return resultado.trim();
+}
+ 
+function generarMutuo(sol) {
+  const cli = sol.cliente || {};
+  const fecha = fmtFecha();
+  const montoLetras = numALetras(Math.round(sol.monto));
+  const cuotaLetras = numALetras(Math.round(sol.cuota));
+  const moraTasa = ((sol.tna || 0) * 1.5).toFixed(2);
+ 
+  return `CONTRATO DE MUTUO CON INTERÉS
+(Ley 25.065 y Código Civil y Comercial de la Nación — Arts. 1525 a 1532)
+ 
+En la Ciudad Autónoma de Buenos Aires, a los ${fecha}, entre:
+ 
+MUTUANTE: AUTOLOGROS S.A., CUIT ${EMPRESA.cuit}, con domicilio en ${EMPRESA.domicilio}, representada en este acto por su ${EMPRESA.cargo}, Sr. ${EMPRESA.representante}, en adelante "LA EMPRESA"; y
+ 
+MUTUARIO: ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil}, con domicilio en el declarado al momento de la solicitud, en adelante "EL CLIENTE";
+ 
+Las partes acuerdan celebrar el presente Contrato de Mutuo con Interés conforme a las siguientes cláusulas:
+ 
+──────────────────────────────────────────────────────────
+PRIMERA — OBJETO
+──────────────────────────────────────────────────────────
+LA EMPRESA entrega en préstamo a EL CLIENTE la suma de PESOS ${montoLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))}), que este declara recibir en este acto de conformidad, mediante acreditación en la cuenta CBU/CVU N° ${cli.cbu} declarada por EL CLIENTE, quien acepta en su totalidad las condiciones del presente contrato.
+ 
+──────────────────────────────────────────────────────────
+SEGUNDA — DESTINO DE LOS FONDOS
+──────────────────────────────────────────────────────────
+Los fondos otorgados en préstamo serán destinados a uso personal del MUTUARIO. EL CLIENTE declara que los fondos recibidos no provienen ni serán destinados a actividades ilícitas, comprometiéndose a su uso lícito conforme a la legislación argentina vigente.
+ 
+──────────────────────────────────────────────────────────
+TERCERA — PLAZO Y FORMA DE DEVOLUCIÓN
+──────────────────────────────────────────────────────────
+EL CLIENTE se obliga a devolver el capital prestado más los intereses pactados en ${sol.plazo} (${numALetras(sol.plazo)}) cuotas mensuales, iguales y consecutivas de PESOS ${cuotaLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(sol.cuota))}), que incluyen capital, intereses y demás accesorios con IVA.
+ 
+El vencimiento de la primera cuota operará a los treinta (30) días corridos desde la acreditación del préstamo. Las cuotas subsiguientes vencerán el mismo día de cada mes calendario.
+ 
+──────────────────────────────────────────────────────────
+CUARTA — TASA DE INTERÉS
+──────────────────────────────────────────────────────────
+Se aplica una Tasa Nominal Anual (TNA) del ${sol.tna}% (${numALetras(Math.round(sol.tna))} por ciento), con capitalización mensual. Sobre los intereses se aplica el Impuesto al Valor Agregado (IVA) a la tasa vigente del 21%.
+ 
+La Tasa Efectiva Anual (TEA) resultante, incluido el IVA sobre intereses, es del ${(((Math.pow(1 + (sol.tna/100/12)*IVA_MOD, 12) - 1) * 100)).toFixed(2)}%.
+ 
+El Costo Financiero Total (CFT) informado al cliente conforme Comunicación "A" BCRA es del ${sol.cft || '⏳ PENDIENTE'}%.
+ 
+──────────────────────────────────────────────────────────
+QUINTA — INTERESES MORATORIOS Y PUNITORIOS
+──────────────────────────────────────────────────────────
+En caso de mora en el pago de cualquier cuota, se devengarán automáticamente intereses moratorios a una tasa equivalente al ciento cincuenta por ciento (150%) de la TNA pactada, es decir ${moraTasa}% TNA, más IVA, desde la fecha de vencimiento hasta el efectivo pago, sin necesidad de interpelación judicial o extrajudicial previa.
+ 
+La mora se producirá en forma automática por el solo vencimiento del plazo, conforme Art. 886 del Código Civil y Comercial de la Nación.
+ 
+──────────────────────────────────────────────────────────
+SEXTA — FORMA DE PAGO Y DÉBITO AUTOMÁTICO
+──────────────────────────────────────────────────────────
+El pago de las cuotas se realizará mediante débito automático sobre el saldo disponible en la cuenta CBU/CVU N° ${cli.cbu} declarada por EL CLIENTE. EL CLIENTE se compromete expresamente a mantener saldo suficiente en dicha cuenta con una antelación mínima de cuarenta y ocho (48) horas al vencimiento de cada cuota.
+ 
+La insuficiencia de fondos en la fecha de vencimiento constituirá mora automática en los términos de la Cláusula Quinta.
+ 
+──────────────────────────────────────────────────────────
+SÉPTIMA — CANCELACIÓN ANTICIPADA
+──────────────────────────────────────────────────────────
+EL CLIENTE podrá cancelar anticipadamente el préstamo en cualquier momento, abonando el capital adeudado más los intereses devengados hasta la fecha de cancelación efectiva. No se cobrarán penalidades por cancelación anticipada, conforme Art. 1388 del Código Civil y Comercial de la Nación y Ley 25.065.
+ 
+──────────────────────────────────────────────────────────
+OCTAVA — INFORMACIÓN Y PRIVACIDAD
+──────────────────────────────────────────────────────────
+EL CLIENTE autoriza expresamente a LA EMPRESA a:
+a) Consultar y reportar su situación crediticia ante bases de datos de información crediticia (Nosis, BCRA Central de Deudores y similares);
+b) Informar la mora o incumplimiento a los organismos correspondientes;
+c) Tratar sus datos personales conforme la Ley 25.326 de Protección de Datos Personales, exclusivamente para la gestión del presente préstamo.
+ 
+──────────────────────────────────────────────────────────
+NOVENA — DOMICILIOS
+──────────────────────────────────────────────────────────
+LA EMPRESA constituye domicilio en ${EMPRESA.domicilio}.
+EL CLIENTE constituye domicilio en el declarado al momento de la solicitud de crédito, aceptando como válidas todas las notificaciones que allí se realicen, incluyendo las efectuadas por medios electrónicos al correo ${cli.email} y al teléfono ${cli.tel}.
+ 
+──────────────────────────────────────────────────────────
+DÉCIMA — JURISDICCIÓN
+──────────────────────────────────────────────────────────
+Para cualquier controversia derivada del presente contrato, las partes se someten a la jurisdicción de los Tribunales Ordinarios de la ${EMPRESA.jurisdiccion}, renunciando expresamente a cualquier otro fuero o jurisdicción que pudiera corresponderles.
+ 
+──────────────────────────────────────────────────────────
+DÉCIMO PRIMERA — FIRMA DIGITAL
+──────────────────────────────────────────────────────────
+El presente contrato es suscripto mediante firma digital conforme Ley 25.506 de Firma Digital. La aceptación electrónica por parte de EL CLIENTE tiene plena validez jurídica y produce los mismos efectos que la firma ológrafa.
+ 
+En prueba de conformidad, las partes firman el presente en la Ciudad Autónoma de Buenos Aires, en la fecha indicada al inicio.
+ 
+ 
+POR AUTOLOGROS S.A.                    EL CLIENTE
+${EMPRESA.representante}               ${cli.nombre} ${cli.apellido}
+${EMPRESA.cargo}                       DNI ${cli.dni}
+ 
+ 
+________________________________________    ________________________________________
+FIRMA EMPRESA                               FIRMA CLIENTE`;
+}
+ 
+function generarPagare(sol) {
+  const cli = sol.cliente || {};
+  const fecha = fmtFecha();
+  const montoLetras = numALetras(Math.round(sol.monto));
+  const totalConIntereses = sol.cuota * sol.plazo;
+  const totalLetras = numALetras(Math.round(totalConIntereses));
+ 
+  return `PAGARÉ SIN PROTESTO
+(Art. 101 y ss. Decreto-Ley 5965/63 — Ley Cambiaria Argentina)
+ 
+LUGAR DE EMISIÓN: Ciudad Autónoma de Buenos Aires
+FECHA DE EMISIÓN: ${fecha}
+MONTO: PESOS ${totalLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(totalConIntereses))})
+ 
+──────────────────────────────────────────────────────────
+ 
+Yo, ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil}, con domicilio declarado ante AUTOLOGROS S.A., me obligo a pagar INCONDICIONALMENTE y SIN PROTESTO a la orden de AUTOLOGROS S.A., CUIT ${EMPRESA.cuit}, o a quien sus derechos represente, en el domicilio sito en ${EMPRESA.domicilio}, Ciudad Autónoma de Buenos Aires, la suma de PESOS ${totalLetras} ($${new Intl.NumberFormat('es-AR').format(Math.round(totalConIntereses))}), correspondiente al total de capital e intereses del préstamo otorgado mediante Contrato de Mutuo de fecha ${fecha}.
+ 
+El pago se realizará en ${sol.plazo} cuotas mensuales de PESOS ${numALetras(Math.round(sol.cuota))} ($${new Intl.NumberFormat('es-AR').format(Math.round(sol.cuota))}), venciendo la primera a los treinta (30) días corridos de la fecha de acreditación del préstamo.
+ 
+TASA DE INTERÉS: TNA ${sol.tna}% + IVA 21%.
+ 
+CLÁUSULA SIN PROTESTO: El presente pagaré lleva insertada la cláusula "SIN PROTESTO" conforme Art. 50 del Decreto-Ley 5965/63, eximiendo al portador de efectuar el protesto por falta de pago para conservar las acciones cambiarias.
+ 
+LUGAR DE PAGO: ${EMPRESA.domicilio}, Ciudad Autónoma de Buenos Aires.
+ 
+JURISDICCIÓN: Tribunales Ordinarios de la Ciudad Autónoma de Buenos Aires.
+ 
+El presente título tiene fuerza ejecutiva conforme Art. 520 y concordantes del Código Procesal Civil y Comercial de la Nación.
+ 
+──────────────────────────────────────────────────────────
+ 
+Emisor:
+ 
+Nombre y Apellido: ${cli.nombre} ${cli.apellido}
+DNI: ${cli.dni}
+CUIL: ${cli.cuil}
+Domicilio: ${cli.emp || 'según declaración en solicitud'}
+ 
+ 
+________________________________________
+FIRMA DEL DEUDOR
+${cli.nombre} ${cli.apellido}
+DNI ${cli.dni}`;
+}
+ 
+// ── Componente principal Módulo C ─────────────────────────────────────────────
+function ModuloC({ sol, user, onVolver, onActualizar }) {
+  const C = {
+    bg0:'#030F1E', bg1:'#06172E', bg2:'#071829', bg3:'#0A1F3A', bg4:'#0D2540',
+    border:'rgba(255,255,255,0.08)', border2:'rgba(255,255,255,0.12)',
+    text:'#FFFFFF', text2:'rgba(255,255,255,0.55)', text3:'rgba(255,255,255,0.35)',
+    gold:'#C8922A', goldL:'rgba(200,146,42,0.15)', goldB:'rgba(200,146,42,0.25)',
+    blue:'#4A9AE0', green:'#4AE08A', greenL:'rgba(74,224,138,0.08)', greenB:'rgba(74,224,138,0.15)',
+    red:'#E05050', redL:'rgba(224,80,80,0.08)', redB:'rgba(224,80,80,0.15)',
+  };
+ 
+  const [doc, setDoc] = useState('mutuo'); // 'mutuo' | 'pagare'
+  const [firmado, setFirmado] = useState({ mutuo: false, pagare: false });
+  const [paso, setPaso] = useState('docs'); // 'docs' | 'firma_cliente' | 'enviado'
+  const [enviando, setEnviando] = useState(false);
+  const [linkFirma] = useState(`https://autologros-app.vercel.app/firma/${sol.id}`);
+ 
+  const cli = sol.cliente || {};
+  const textoMutuo = generarMutuo(sol);
+  const textoPagare = generarPagare(sol);
+  const textoActual = doc === 'mutuo' ? textoMutuo : textoPagare;
+  const ambosListos = firmado.mutuo && firmado.pagare;
+ 
+  const whatsappMsg = encodeURIComponent(
+    `Hola ${cli.nombre}, le escribimos desde AUTOLOGROS S.A.\n\nSu préstamo por $${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))} ha sido PRE-APROBADO.\n\nPara completar el proceso, necesitamos que firme digitalmente el Contrato de Mutuo y el Pagaré.\n\nAcceda al siguiente enlace seguro:\n${linkFirma}\n\nEste enlace es personal e intransferible. Ante cualquier consulta comuníquese con nosotros.\n\nGracias,\nAutologros S.A.`
+  );
+  const mailMsg = `mailto:${cli.email}?subject=AUTOLOGROS S.A. — Firma de Documentos — Solicitud ${sol.id}&body=${encodeURIComponent(
+    `Estimado/a ${cli.nombre} ${cli.apellido},\n\nNos comunicamos desde AUTOLOGROS S.A. para informarle que su solicitud de préstamo por $${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))} ha sido PRE-APROBADA.\n\nPara continuar con el proceso, necesitamos que proceda a la firma digital del Contrato de Mutuo y el Pagaré correspondiente.\n\nAcceda al siguiente enlace para firmar sus documentos:\n${linkFirma}\n\nEste enlace es personal, confidencial e intransferible.\n\nAntes de firmar, le recomendamos leer atentamente ambos documentos.\n\nAnte cualquier consulta no dude en contactarnos.\n\nSaludos cordiales,\n${EMPRESA.representante}\n${EMPRESA.cargo}\nAUTOLOGROS S.A.\n${EMPRESA.domicilio}`
+  )}`;
+ 
+  const Card = ({ children, style }) => <div style={{ background: C.bg4, borderRadius: 12, border: `1px solid ${C.border}`, ...style }}>{children}</div>;
+  const Btn = ({ onClick, children, variant = 'primary', disabled, style, full }) => {
+    const vs = {
+      primary: { background: '#1A4F8A', color: '#fff', border: 'none' },
+      gold: { background: C.gold, color: '#fff', border: 'none' },
+      ghost: { background: 'transparent', color: C.gold, border: `1.5px solid ${C.gold}` },
+      sec: { background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}` },
+      success: { background: '#1A6B3C', color: '#fff', border: 'none' },
+      danger: { background: '#6B1A1A', color: '#fff', border: 'none' },
+      green: { background: C.green, color: '#000', border: 'none' },
+      whatsapp: { background: '#25D366', color: '#fff', border: 'none' },
+      mail: { background: '#1A4F8A', color: '#fff', border: 'none' },
+    };
+    return (
+      <button onClick={onClick} disabled={disabled}
+        style={{ ...vs[variant], padding: '10px 22px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? .55 : 1, fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase', width: full ? '100%' : 'auto', ...style }}>
+        {children}
+      </button>
+    );
+  };
+ 
+  return (
+    <div style={{ minHeight: '100vh', background: C.bg2, fontFamily: 'system-ui, Arial, sans-serif' }}>
+      {/* Header */}
+      <div style={{ background: C.bg1, borderBottom: `1px solid ${C.border}`, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <svg width={34} height={34} viewBox="0 0 44 44" fill="none">
+            <polygon points="22,2 40,12 40,32 22,42 4,32 4,12" fill="none" stroke={C.gold} strokeWidth="2.5"/>
+            <polygon points="22,7 36,15 36,29 22,37 8,29 8,15" fill={C.gold} opacity="0.12"/>
+            <text x="22" y="27" textAnchor="middle" fill={C.gold} fontSize="16" fontWeight="900" fontFamily="Arial">$</text>
+          </svg>
+          <div>
+            <div style={{ color: C.text, fontWeight: 900, fontSize: 17, letterSpacing: '0.1em', textTransform: 'uppercase' }}>AUTOLOGROS</div>
+            <div style={{ color: C.text3, fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2 }}>MÓDULO C — CONTRATOS Y FIRMA DIGITAL</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ color: C.text, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{user.nombre}</div>
+          <button onClick={onVolver} style={{ background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}`, padding: '7px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>← VOLVER</button>
+        </div>
+      </div>
+ 
+      <div style={{ padding: 28, maxWidth: 1100, margin: '0 auto' }}>
+ 
+        {/* Info cliente */}
+        <Card style={{ padding: 20, marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
+            {[
+              ['CLIENTE', `${cli.nombre} ${cli.apellido}`],
+              ['DNI / CUIL', `${cli.dni} / ${cli.cuil}`],
+              ['MONTO', `$${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))}`],
+              ['CUOTA × PLAZO', `$${new Intl.NumberFormat('es-AR').format(Math.round(sol.cuota))} × ${sol.plazo}M`],
+              ['TNA', `${sol.tna}%`],
+            ].map(([l, v]) => (
+              <div key={l} style={{ background: C.bg3, borderRadius: 8, padding: '10px 12px', border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{l}</div>
+                <div style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+ 
+        {paso === 'docs' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+            {/* Panel izquierdo — selector y preview */}
+            <div>
+              {/* Tabs doc */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                {[['mutuo', 'CONTRATO DE MUTUO'], ['pagare', 'PAGARÉ']].map(([k, l]) => (
+                  <button key={k} onClick={() => setDoc(k)}
+                    style={{ flex: 1, padding: '10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase', border: `1.5px solid ${doc === k ? C.gold : C.border}`, background: doc === k ? C.goldL : 'rgba(255,255,255,0.03)', color: doc === k ? C.gold : C.text2 }}>
+                    {l}
+                    {firmado[k] && <span style={{ marginLeft: 8, color: C.green }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+ 
+              {/* Preview del documento */}
+              <Card style={{ padding: 0, overflow: 'hidden' }}>
+                <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {doc === 'mutuo' ? 'CONTRATO DE MUTUO CON INTERÉS' : 'PAGARÉ SIN PROTESTO'}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.text3, fontWeight: 400 }}>AUTOCOMPLETADO CON DATOS DEL CLIENTE</div>
+                </div>
+                <div style={{ padding: 16, maxHeight: 480, overflowY: 'auto' }}>
+                  <pre style={{ fontSize: 11, color: C.text2, fontFamily: 'monospace', whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
+                    {textoActual}
+                  </pre>
+                </div>
+              </Card>
+ 
+              {/* Botón firmar empresa */}
+              <div style={{ marginTop: 14 }}>
+                {!firmado[doc] ? (
+                  <Btn onClick={() => setFirmado({ ...firmado, [doc]: true })} variant="gold" full>
+                    ✍️ FIRMAR {doc === 'mutuo' ? 'CONTRATO' : 'PAGARÉ'} — AUTOLOGROS S.A.
+                  </Btn>
+                ) : (
+                  <div style={{ background: C.greenL, border: `1px solid ${C.greenB}`, borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: C.green }}>✓ FIRMADO POR AUTOLOGROS S.A.</div>
+                    <div style={{ fontSize: 10, color: C.text3, marginTop: 3, fontWeight: 400 }}>
+                      {EMPRESA.representante} · {new Date().toLocaleDateString('es-AR')} {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+ 
+            {/* Panel derecho — estado y acciones */}
+            <div>
+              {/* Estado de firmas */}
+              <Card style={{ padding: 20, marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>ESTADO DE FIRMAS</div>
+                {[
+                  ['CONTRATO DE MUTUO', 'mutuo'],
+                  ['PAGARÉ', 'pagare'],
+                ].map(([label, key]) => (
+                  <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 8, marginBottom: 8, border: `1px solid ${firmado[key] ? C.greenB : C.border}`, background: firmado[key] ? C.greenL : 'rgba(255,255,255,0.02)' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                      <div style={{ fontSize: 10, color: C.text3, marginTop: 2, fontWeight: 400 }}>
+                        {firmado[key] ? `Firmado por ${EMPRESA.representante}` : 'Pendiente de firma empresa'}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 20 }}>{firmado[key] ? '✅' : '⏳'}</div>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.02)', opacity: 0.6 }}>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text, textTransform: 'uppercase', letterSpacing: '0.04em' }}>FIRMA CLIENTE</div>
+                    <div style={{ fontSize: 10, color: C.text3, marginTop: 2, fontWeight: 400 }}>Se enviará link al cliente</div>
+                  </div>
+                  <div style={{ fontSize: 20 }}>📱</div>
+                </div>
+              </Card>
+ 
+              {/* Progreso */}
+              <Card style={{ padding: 20, marginBottom: 16 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>PASOS DEL PROCESO</div>
+                {[
+                  ['1', 'Revisar y firmar documentos (empresa)', ambosListos],
+                  ['2', 'Enviar link de firma al cliente', false],
+                  ['3', 'Cliente firma desde su dispositivo', false],
+                  ['4', 'Contrato ejecutado — desembolso', false],
+                ].map(([n, label, done]) => (
+                  <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{ width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? C.green : C.bg3, border: `1.5px solid ${done ? C.green : C.border}`, fontSize: 11, fontWeight: 900, color: done ? '#000' : C.text3, flexShrink: 0 }}>
+                      {done ? '✓' : n}
+                    </div>
+                    <div style={{ fontSize: 12, color: done ? C.text : C.text2, fontWeight: done ? 700 : 400 }}>{label}</div>
+                  </div>
+                ))}
+              </Card>
+ 
+              {/* Botón continuar */}
+              {ambosListos && (
+                <Btn onClick={() => setPaso('envio')} variant="success" full style={{ fontSize: 13, padding: '14px' }}>
+                  CONTINUAR → ENVIAR LINK AL CLIENTE
+                </Btn>
+              )}
+              {!ambosListos && (
+                <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '12px 16px', fontSize: 11, color: C.gold, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  ⚠️ Firmá ambos documentos para continuar
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+ 
+        {paso === 'envio' && (
+          <div style={{ maxWidth: 640, margin: '0 auto' }}>
+            <Card style={{ padding: 32 }}>
+              <div style={{ textAlign: 'center', marginBottom: 28 }}>
+                <div style={{ fontSize: 36, marginBottom: 12 }}>📤</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.06em' }}>ENVIAR LINK DE FIRMA AL CLIENTE</div>
+                <div style={{ fontSize: 12, color: C.text2, marginTop: 6, fontWeight: 400 }}>El cliente recibirá el link para revisar y firmar los documentos</div>
+              </div>
+ 
+              {/* Info cliente */}
+              <div style={{ background: C.bg3, borderRadius: 10, padding: 18, marginBottom: 24, border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>DESTINATARIO</div>
+                <div style={{ fontSize: 15, fontWeight: 900, color: C.text, textTransform: 'uppercase', marginBottom: 4 }}>{cli.nombre} {cli.apellido}</div>
+                <div style={{ fontSize: 12, color: C.text2, marginBottom: 3 }}>📧 {cli.email}</div>
+                <div style={{ fontSize: 12, color: C.text2 }}>📱 {cli.tel}</div>
+              </div>
+ 
+              {/* Link de firma */}
+              <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '12px 16px', marginBottom: 24 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>LINK DE FIRMA (AUTOGENERADO)</div>
+                <div style={{ fontSize: 11, color: C.text, fontWeight: 700, wordBreak: 'break-all' }}>{linkFirma}</div>
+              </div>
+ 
+              {/* Botones de envío */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                <a href={`https://wa.me/${cli.tel?.replace(/[^0-9]/g, '')}?text=${whatsappMsg}`}
+                  target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <button style={{ width: '100%', background: '#25D366', color: '#fff', border: 'none', padding: '14px 22px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>💬</span> ENVIAR POR WHATSAPP
+                  </button>
+                </a>
+                <a href={mailMsg} style={{ textDecoration: 'none' }}>
+                  <button style={{ width: '100%', background: '#1A4F8A', color: '#fff', border: 'none', padding: '14px 22px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 18 }}>📧</span> ENVIAR POR EMAIL
+                  </button>
+                </a>
+              </div>
+ 
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button onClick={() => setPaso('docs')} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}`, padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  ← VOLVER A DOCUMENTOS
+                </button>
+                <button onClick={async () => {
+                  await db.updateSolicitud(sol.id, {
+                    estado: 'aprobado',
+                    estado_texto: 'CONTRATO ENVIADO — PENDIENTE FIRMA CLIENTE',
+                    fecha_envio_contrato: new Date().toLocaleDateString('es-AR'),
+                    analista: user.nombre,
+                  });
+                  onActualizar();
+                  setPaso('enviado');
+                }} style={{ flex: 1, background: '#1A6B3C', color: '#fff', border: 'none', padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  ✓ CONFIRMAR ENVÍO
+                </button>
+              </div>
+            </Card>
+          </div>
+        )}
+ 
+        {paso === 'enviado' && (
+          <div style={{ maxWidth: 500, margin: '60px auto', textAlign: 'center' }}>
+            <Card style={{ padding: 48 }}>
+              <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: C.green, marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase' }}>CONTRATO ENVIADO</div>
+              <div style={{ color: C.text2, marginBottom: 8, fontWeight: 400, fontSize: 13 }}>
+                El link de firma fue enviado a {cli.nombre} {cli.apellido}
+              </div>
+              <div style={{ color: C.text3, marginBottom: 28, fontSize: 11, fontWeight: 400 }}>
+                Estado actualizado: CONTRATO ENVIADO — PENDIENTE FIRMA CLIENTE
+              </div>
+              <button onClick={onVolver} style={{ background: 'transparent', color: C.gold, border: `1.5px solid ${C.gold}`, padding: '10px 28px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                VOLVER AL PANEL
+              </button>
+            </Card>
+          </div>
         )}
       </div>
     </div>
