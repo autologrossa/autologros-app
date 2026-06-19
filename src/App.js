@@ -5,8 +5,6 @@ import LegajoDigital, { PanelLegajos } from './LegajoDigital';
 import ModuloE from './ModuloE_Desembolso';
 import ModuloF, { CuentaCorriente } from './ModuloF_Cartera';
 import ModuloH from './ModuloH_Reportes';
-import ModuloContabilidad from './ModuloContabilidad';
-import ModuloCuentasCorrientes from './ModuloCuentasCorrientes';
 import { db } from './supabase';
 
 // ── Cálculos financieros ──────────────────────────────────────────────────────
@@ -220,7 +218,7 @@ function Admin({user,onLogout}){
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES'],['contabilidad','CONTABILIDAD'],['cuentas','CUENTAS CTES']]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:960,margin:'0 auto'}}>
         {tab==='lineas'&&(
           <>
@@ -279,8 +277,6 @@ function Admin({user,onLogout}){
         {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin} onDesembolsar={setModuloE}/>}
         {tab==='cartera'&&<ModuloF user={user} onVerCuenta={setCuentaCte}/>}
         {tab==='reportes'&&<ModuloH user={user}/>}
-         {tab==='contabilidad'&&<ModuloContabilidad user={user}/>}
-          {tab==='cuentas'&&<ModuloCuentasCorrientes user={user}/>}
         {tab==='embajadores'&&(
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
@@ -1074,6 +1070,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
   const [obs, setObs] = useState('');
   const [conf, setConf] = useState(null);
   const [enviando, setEnviando] = useState(false);
+  const [simulado, setSimulado] = useState(false);
 
   const cli = sol.cliente || {};
   const prom = sol.prom_sueldo || 0;
@@ -1089,7 +1086,37 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
       setBcraData(parsearBCRA(rBcra));
       setNosisData(parsearNosis(rNosis));
     } catch(e) {
-      setError('Error de conexión. Verificá la red e intentá de nuevo.');
+      // ── MODO SIMULACIÓN — Se activa cuando las APIs no están disponibles ──
+      // Reemplazar con datos reales cuando Nosis y BCRA estén conectados
+      console.warn('APIs no disponibles — activando modo simulación');
+      setSimulado(true);
+      setBcraData({
+        ok: true,
+        peorSit: 1,
+        cantEntidades: 0,
+        deudas: [],
+      });
+      setNosisData({
+        ok: true,
+        esEmpleado: 'SI',
+        esMonotributista: 'NO',
+        esAutonomo: 'NO',
+        esJubilado: 'NO',
+        antiguedadLaboral: 48,
+        compromisoMensual: '$0',
+        cheques6mCant: 0,
+        cheques6mMonto: '$0',
+        concursos24m: 0,
+        deudaFiscal: 'NO',
+        consultas12m: 2,
+        refVigCant: 1,
+        telCodArea: '11',
+        telNro: cli.tel || 'S/D',
+        domCalle: 'S/D',
+        domLoc: 'S/D',
+        domProv: 'S/D',
+        cneTiene: 'SI',
+      });
     }
     setLoading(false);
   }
@@ -1256,6 +1283,15 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
               </Card>
             </div>
 
+            {simulado && (
+              <div style={{ background: 'rgba(200,146,42,0.1)', border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>⚠️</span>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.06em' }}>MODO SIMULACIÓN — DATOS DE PRUEBA</div>
+                  <div style={{ fontSize: 10, color: C.text3, marginTop: 2, fontWeight: 400 }}>Las APIs de BCRA y Nosis no están disponibles. Estos datos son simulados para pruebas del sistema. No usar para decisiones reales.</div>
+                </div>
+              </div>
+            )}
             <div style={{ textAlign: 'right', marginBottom: 16 }}>
               <Btn onClick={consultar} disabled={loading} variant="sec" style={{ fontSize: 11 }}>{loading ? 'CONSULTANDO...' : '↻ VOLVER A CONSULTAR'}</Btn>
             </div>
