@@ -427,22 +427,22 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni}`}</pre>
 
             {!selfie ? (
               <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
-                {!camaraActiva ? (
-                  <div style={{textAlign:'center',padding:'20px 0'}}>
+                <div style={{textAlign:'center',padding:'20px 0'}}>
                     <div style={{fontSize:40,marginBottom:12}}>📷</div>
-                    <div style={{fontSize:12,color:C.text2,marginBottom:20,fontWeight:400}}>Presione el botón para activar la cámara</div>
-                    <button onClick={abrirCamara} style={{background:C.gold,color:'#fff',border:'none',padding:'12px 32px',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                      ACTIVAR CÁMARA
-                    </button>
+                    <div style={{fontSize:12,color:C.text2,marginBottom:8,fontWeight:400}}>Presione el botón para tomar la selfie con su DNI</div>
+                    <div style={{fontSize:11,color:C.text3,marginBottom:20,fontWeight:400}}>Se abrirá la cámara de su dispositivo</div>
+                    <label style={{display:'inline-block',background:C.gold,color:'#fff',padding:'12px 32px',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
+                      📷 TOMAR SELFIE
+                      <input type="file" accept="image/*" capture="user" style={{display:'none'}}
+                        onChange={e=>{
+                          const file = e.target.files[0];
+                          if(!file) return;
+                          const reader = new FileReader();
+                          reader.onload = ev => setSelfie(ev.target.result);
+                          reader.readAsDataURL(file);
+                        }}/>
+                    </label>
                   </div>
-                ) : (
-                  <div style={{textAlign:'center'}}>
-                    <video ref={videoRef} style={{width:'100%',borderRadius:8,marginBottom:12,background:'#000'}} autoPlay playsInline muted/>
-                    <button onClick={tomarFoto} style={{background:C.green,color:'#000',border:'none',padding:'12px 32px',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                      📸 TOMAR FOTO
-                    </button>
-                  </div>
-                )}
               </div>
             ) : (
               <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.greenB}`,padding:20,marginBottom:20}}>
