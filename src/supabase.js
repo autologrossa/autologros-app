@@ -94,4 +94,20 @@ export const db = {
     if (error) throw error;
     return true;
   },
+ async uploadDocumento(solicitudId, nombreDoc, archivo) {
+    const ext = archivo.name.split('.').pop();
+    const path = `${solicitudId}/${nombreDoc.replace(/\s+/g,'_')}.${ext}`;
+    const { error } = await supabase.storage.from('documentos').upload(path, archivo, { upsert: true });
+    if (error) throw error;
+    const { data } = supabase.storage.from('documentos').getPublicUrl(path);
+    return data.publicUrl;
+  },
+  async getDocumentos(solicitudId) {
+    const { data, error } = await supabase.storage.from('documentos').list(solicitudId);
+    if (error) return [];
+    return data.map(f => ({
+      nombre: f.name,
+      url: supabase.storage.from('documentos').getPublicUrl(`${solicitudId}/${f.name}`).data.publicUrl
+    }));
+  },
 };
