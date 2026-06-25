@@ -1,26 +1,7 @@
-// ══════════════════════════════════════════════════════════════════════════════
-// PORTAL DE FIRMA DIGITAL — CLIENTE
-// Archivo: src/pages/Firma.jsx  (o src/FirmaCliente.jsx)
-// Ruta Vercel: /firma/:token
-// ══════════════════════════════════════════════════════════════════════════════
-// INSTRUCCIONES DE INTEGRACIÓN:
-// 1. Instalar: npm install react-router-dom crypto-js
-// 2. En src/main.jsx o index.jsx envolver App con <BrowserRouter>
-// 3. Agregar ruta en App.jsx:
-//    import { Routes, Route } from 'react-router-dom'
-//    import FirmaCliente from './FirmaCliente'
-//    <Routes>
-//      <Route path="/" element={<AppPrincipal/>} />
-//      <Route path="/firma/:token" element={<FirmaCliente/>} />
-//    </Routes>
-// 4. En supabase.js agregar los métodos: getSolicitudByToken, saveFirmaCliente
-// ══════════════════════════════════════════════════════════════════════════════
-
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from './supabase';
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
   bg0:'#030F1E', bg1:'#06172E', bg2:'#071829', bg3:'#0A1F3A', bg4:'#0D2540',
   border:'rgba(255,255,255,0.08)', border2:'rgba(255,255,255,0.12)',
@@ -38,7 +19,6 @@ const EMPRESA = {
   cargo: 'Presidente',
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const fmt = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n);
 
 async function sha256(text) {
@@ -55,7 +35,6 @@ function generarTokenSesion() {
   return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// ── Canvas firma ──────────────────────────────────────────────────────────────
 function CanvasFirma({ onFirma, label }) {
   const canvasRef = useRef(null);
   const [dibujando, setDibujando] = useState(false);
@@ -67,24 +46,12 @@ function CanvasFirma({ onFirma, label }) {
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     if (e.touches) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY
-      };
+      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
     }
-    return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
-    };
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   }
 
-  function startDraw(e) {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    const pos = getPos(e, canvas);
-    setDibujando(true);
-    setLastPos(pos);
-  }
+  function startDraw(e) { e.preventDefault(); const canvas = canvasRef.current; const pos = getPos(e, canvas); setDibujando(true); setLastPos(pos); }
 
   function draw(e) {
     e.preventDefault();
@@ -92,33 +59,19 @@ function CanvasFirma({ onFirma, label }) {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     const pos = getPos(e, canvas);
-    ctx.beginPath();
-    ctx.moveTo(lastPos.x, lastPos.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    setLastPos(pos);
-    setTieneFirma(true);
+    ctx.beginPath(); ctx.moveTo(lastPos.x, lastPos.y); ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = '#FFFFFF'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+    setLastPos(pos); setTieneFirma(true);
   }
 
   function endDraw(e) {
-    e.preventDefault();
-    setDibujando(false);
-    if (tieneFirma) {
-      const canvas = canvasRef.current;
-      onFirma(canvas.toDataURL('image/png'));
-    }
+    e.preventDefault(); setDibujando(false);
+    if (tieneFirma) { const canvas = canvasRef.current; onFirma(canvas.toDataURL('image/png')); }
   }
 
   function limpiar() {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setTieneFirma(false);
-    onFirma(null);
+    const canvas = canvasRef.current; const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height); setTieneFirma(false); onFirma(null);
   }
 
   return (
@@ -145,11 +98,9 @@ function CanvasFirma({ onFirma, label }) {
   );
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
 export default function FirmaCliente() {
   const { token } = useParams();
-  const [paso, setPaso] = useState('cargando'); 
-  // cargando | invalido | expirado | ya_firmado | leyendo_mutuo | leyendo_pagare | firmando | selfie | completado | error
+  const [paso, setPaso] = useState('cargando');
   const [sol, setSol] = useState(null);
   const [firmaMutuo, setFirmaMutuo] = useState(null);
   const [firmaPagare, setFirmaPagare] = useState(null);
@@ -168,40 +119,24 @@ export default function FirmaCliente() {
 
   async function cargarSolicitud() {
     try {
-      // Obtener IP pública
       let ip = 'N/D';
-      try {
-        const r = await fetch('https://api.ipify.org?format=json');
-        const d = await r.json();
-        ip = d.ip;
-      } catch {}
-      
+      try { const r = await fetch('https://api.ipify.org?format=json'); const d = await r.json(); ip = d.ip; } catch {}
       const s = await db.getSolicitudByToken(token);
       if (!s) { setPaso('invalido'); return; }
-      
-      // Verificar expiración (48hs)
       const creacion = new Date(s.fecha_token_generado || s.fecha_envio_contrato_iso || new Date());
       const ahora = new Date();
       const diffHs = (ahora - creacion) / (1000 * 60 * 60);
       if (diffHs > 48) { setPaso('expirado'); return; }
-      
-      // Verificar si ya firmó
       if (s.firma_cliente_completada) { setPaso('ya_firmado'); return; }
-      
       setSol({ ...s, ip_cliente: ip });
-      
-      // Obtener geolocalización
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           pos => setGeo({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
           () => setGeo(null)
         );
       }
-      
       setPaso('bienvenida');
-    } catch(e) {
-      setPaso('error');
-    }
+    } catch(e) { setPaso('error'); }
   }
 
   async function abrirCamara() {
@@ -220,70 +155,46 @@ export default function FirmaCliente() {
       } else if (isAndroid) {
         msg += '📱 En Android:\n1. Tocá los tres puntos del navegador\n2. Configuración → Permisos del sitio\n3. Cámara → Permitir\n4. Volvé a esta pantalla e intentá de nuevo.';
       } else {
-        msg += '💻 En la barra de dirección del navegador tocá el candado 🔒 → Permisos → Cámara → Permitir.';
+        msg += '💻 En la barra de dirección tocá el candado 🔒 → Permisos → Cámara → Permitir.';
       }
       alert(msg);
-    }
     }
   }
 
   function tomarFoto() {
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth || 640; canvas.height = video.videoHeight || 480;
     canvas.getContext('2d').drawImage(video, 0, 0);
     setSelfie(canvas.toDataURL('image/jpeg', 0.85));
     streamRef.current?.getTracks().forEach(t => t.stop());
     setCamaraActiva(false);
   }
 
-  function rehacerSelfie() {
-    setSelfie(null);
-    setCamaraActiva(false);
-  }
+  function rehacerSelfie() { setSelfie(null); setCamaraActiva(false); }
 
   async function completarFirma() {
     if (!firmaMutuo || !firmaPagare || !aclaracion || !dniConfirmado || !selfie) return;
-    if (dniConfirmado !== sol.cliente?.dni) {
-      alert('El DNI ingresado no coincide con el registrado en la solicitud.');
-      return;
-    }
-    
+    if (dniConfirmado !== sol.cliente?.dni) { alert('El DNI ingresado no coincide con el registrado.'); return; }
     setProcesando(true);
     try {
       const ahora = new Date();
       const timestamp = ahora.toISOString();
       const timestampAR = ahora.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', dateStyle: 'full', timeStyle: 'long' });
-      
-      // Hash del contrato
       const textoContrato = `SOLICITUD:${sol.id}|CLIENTE:${sol.cliente?.cuil}|MONTO:${sol.monto}|PLAZO:${sol.plazo}|TNA:${sol.tna}|TIMESTAMP:${timestamp}`;
       const hashDocumento = await sha256(textoContrato);
-      
       const metadataFirma = {
-        timestamp_utc: timestamp,
-        timestamp_ar: timestampAR,
-        ip_cliente: sol.ip_cliente || 'N/D',
-        user_agent: userAgent,
-        geolocalizacion: geo ? `${geo.lat.toFixed(6)}, ${geo.lng.toFixed(6)} (±${Math.round(geo.accuracy)}m)` : 'No disponible',
-        hash_documento: hashDocumento,
-        token_sesion: sessionToken,
-        aclaracion_firmante: aclaracion,
-        dni_confirmado: dniConfirmado,
-        firma_mutuo_png: firmaMutuo,
-        firma_pagare_png: firmaPagare,
-        selfie_png: selfie,
+        timestamp_utc: timestamp, timestamp_ar: timestampAR, ip_cliente: sol.ip_cliente || 'N/D',
+        user_agent: userAgent, geolocalizacion: geo ? `${geo.lat.toFixed(6)}, ${geo.lng.toFixed(6)} (±${Math.round(geo.accuracy)}m)` : 'No disponible',
+        hash_documento: hashDocumento, token_sesion: sessionToken, aclaracion_firmante: aclaracion,
+        dni_confirmado: dniConfirmado, firma_mutuo_png: firmaMutuo, firma_pagare_png: firmaPagare, selfie_png: selfie,
       };
-
       await db.saveFirmaCliente(sol.id, metadataFirma);
       setPaso('completado');
-    } catch(e) {
-      alert('Error al guardar la firma. Por favor intente nuevamente.');
-    }
+    } catch(e) { alert('Error al guardar la firma. Por favor intente nuevamente.'); }
     setProcesando(false);
   }
 
-  // ── Pantallas de estado ───────────────────────────────────────────────────
   const Pantalla = ({ emoji, titulo, texto, color }) => (
     <div style={{minHeight:'100vh',background:`linear-gradient(160deg,${C.bg0} 0%,${C.bg1} 100%)`,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{textAlign:'center',maxWidth:400}}>
@@ -297,9 +208,10 @@ export default function FirmaCliente() {
 
   if (paso === 'cargando') return <Pantalla emoji="⏳" titulo="Cargando..." texto="Verificando su enlace de firma." />;
   if (paso === 'invalido') return <Pantalla emoji="❌" titulo="Enlace inválido" texto="Este enlace de firma no existe o no es válido. Comuníquese con AUTOLOGROS S.A." color={C.red} />;
-  if (paso === 'expirado') return <Pantalla emoji="⏰" titulo="Enlace expirado" texto="Este enlace de firma ha vencido (48 horas). Comuníquese con AUTOLOGROS S.A. para recibir un nuevo enlace." color={C.gold} />;
+  if (paso === 'expirado') return <Pantalla emoji="⏰" titulo="Enlace expirado" texto="Este enlace ha vencido (48 horas). Comuníquese con AUTOLOGROS S.A. para recibir un nuevo enlace." color={C.gold} />;
   if (paso === 'ya_firmado') return <Pantalla emoji="✅" titulo="Documentos ya firmados" texto="Ya completó el proceso de firma digital. Sus documentos han sido registrados correctamente." color={C.green} />;
-  if (paso === 'error') return <Pantalla emoji="⚠️" titulo="Error de conexión" texto="No se pudo cargar su información. Por favor intente nuevamente o comuníquese con AUTOLOGROS S.A." color={C.red} />;
+  if (paso === 'error') return <Pantalla emoji="⚠️" titulo="Error de conexión" texto="No se pudo cargar su información. Por favor intente nuevamente." color={C.red} />;
+
   if (paso === 'completado') return (
     <div style={{minHeight:'100vh',background:`linear-gradient(160deg,${C.bg0} 0%,${C.bg1} 100%)`,display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
       <div style={{textAlign:'center',maxWidth:480}}>
@@ -307,7 +219,7 @@ export default function FirmaCliente() {
         <div style={{fontSize:20,fontWeight:900,color:C.green,marginBottom:12,letterSpacing:'0.04em',textTransform:'uppercase'}}>Firma completada</div>
         <div style={{fontSize:13,color:C.text2,fontWeight:400,lineHeight:1.8,marginBottom:20}}>
           Sus documentos han sido firmados y registrados correctamente.<br/>
-          En breve {EMPRESA.nombre} procesará su préstamo y recibirá la confirmación del desembolso.
+          En breve {EMPRESA.nombre} procesará su préstamo.
         </div>
         <div style={{background:C.greenL,border:`1px solid ${C.greenB}`,borderRadius:10,padding:18,fontSize:11,color:C.text2,textAlign:'left',lineHeight:1.8}}>
           <strong style={{color:C.green}}>Registro de firma:</strong><br/>
@@ -323,11 +235,8 @@ export default function FirmaCliente() {
 
   const cli = sol?.cliente || {};
 
-  // ── Layout principal ──────────────────────────────────────────────────────
   return (
     <div style={{minHeight:'100vh',background:`linear-gradient(160deg,${C.bg0} 0%,${C.bg1} 100%)`,fontFamily:'system-ui,Arial,sans-serif'}}>
-      
-      {/* Header */}
       <div style={{background:'rgba(6,23,46,0.95)',borderBottom:`1px solid ${C.border}`,padding:'14px 20px',display:'flex',alignItems:'center',gap:12,position:'sticky',top:0,zIndex:100}}>
         <svg width={30} height={30} viewBox="0 0 44 44" fill="none">
           <polygon points="22,2 40,12 40,32 22,42 4,32 4,12" fill="none" stroke={C.gold} strokeWidth="2.5"/>
@@ -345,19 +254,13 @@ export default function FirmaCliente() {
 
       <div style={{padding:'24px 20px',maxWidth:680,margin:'0 auto'}}>
 
-        {/* ── BIENVENIDA ── */}
         {paso === 'bienvenida' && (
           <div>
             <div style={{textAlign:'center',marginBottom:28}}>
               <div style={{fontSize:32,marginBottom:12}}>📋</div>
               <div style={{fontSize:18,fontWeight:900,color:C.text,marginBottom:8}}>Hola, {cli.nombre}</div>
-              <div style={{fontSize:13,color:C.text2,fontWeight:400,lineHeight:1.7}}>
-                Su solicitud de préstamo fue pre-aprobada.<br/>
-                A continuación deberá leer y firmar digitalmente los documentos.
-              </div>
+              <div style={{fontSize:13,color:C.text2,fontWeight:400,lineHeight:1.7}}>Su solicitud de préstamo fue pre-aprobada.<br/>A continuación deberá leer y firmar digitalmente los documentos.</div>
             </div>
-
-            {/* Resumen del préstamo */}
             <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
               <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>RESUMEN DE SU PRÉSTAMO</div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
@@ -369,35 +272,24 @@ export default function FirmaCliente() {
                 ))}
               </div>
             </div>
-
-            {/* Pasos */}
             <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:24}}>
               <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>PASOS A SEGUIR</div>
-              {[
-                ['1','Leer el Contrato de Mutuo y firmarlo'],
-                ['2','Leer el Pagaré y firmarlo'],
-                ['3','Tomar una selfie para verificar su identidad'],
-              ].map(([n,l])=>(
+              {[['1','Leer el Contrato de Mutuo y firmarlo'],['2','Leer el Pagaré y firmarlo'],['3','Tomar una selfie para verificar su identidad']].map(([n,l])=>(
                 <div key={n} style={{display:'flex',alignItems:'center',gap:12,padding:'8px 0',borderBottom:`1px solid ${C.border}`}}>
                   <div style={{width:26,height:26,borderRadius:'50%',background:C.goldL,border:`1.5px solid ${C.goldB}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:900,color:C.gold,flexShrink:0}}>{n}</div>
                   <div style={{fontSize:13,color:C.text2}}>{l}</div>
                 </div>
               ))}
             </div>
-
-            {/* Aviso legal */}
             <div style={{background:C.goldL,border:`1px solid ${C.goldB}`,borderRadius:8,padding:'12px 16px',marginBottom:24,fontSize:11,color:C.text2,lineHeight:1.6}}>
-              <strong style={{color:C.gold}}>Aviso legal:</strong> Al firmar estos documentos, usted acepta los términos del préstamo en forma expresa. La firma digital tiene plena validez jurídica conforme a la Ley 25.506 de Firma Digital de la República Argentina. Se registrarán su dirección IP, geolocalización y datos del dispositivo como constancia de la operación.
+              <strong style={{color:C.gold}}>Aviso legal:</strong> Al firmar estos documentos, usted acepta los términos del préstamo. La firma digital tiene plena validez jurídica conforme a la Ley 25.506.
             </div>
-
-            <button onClick={()=>setPaso('leyendo_mutuo')}
-              style={{width:'100%',background:C.gold,color:'#fff',border:'none',padding:'16px',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
+            <button onClick={()=>setPaso('leyendo_mutuo')} style={{width:'100%',background:C.gold,color:'#fff',border:'none',padding:'16px',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
               COMENZAR →
             </button>
           </div>
         )}
 
-        {/* ── LECTURA MUTUO ── */}
         {paso === 'leyendo_mutuo' && (
           <div>
             <div style={{marginBottom:16}}>
@@ -405,11 +297,8 @@ export default function FirmaCliente() {
               <div style={{fontSize:16,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.04em'}}>Contrato de Mutuo con Interés</div>
               <div style={{fontSize:12,color:C.text2,marginTop:4,fontWeight:400}}>Lea el documento completo antes de firmar</div>
             </div>
-
-            {/* Texto del contrato */}
             <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:20,maxHeight:320,overflowY:'auto'}}>
-              <pre style={{fontSize:11,color:C.text2,fontFamily:'monospace',whiteSpace:'pre-wrap',lineHeight:1.7,margin:0}}>
-{`CONTRATO DE MUTUO CON INTERÉS
+              <pre style={{fontSize:11,color:C.text2,fontFamily:'monospace',whiteSpace:'pre-wrap',lineHeight:1.7,margin:0}}>{`CONTRATO DE MUTUO CON INTERÉS
 Ley 25.065 y CCyCN Arts. 1525-1532
 
 Fecha: ${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}
@@ -420,57 +309,39 @@ Representante: ${EMPRESA.representante}, ${EMPRESA.cargo}
 
 MUTUARIO: ${cli.nombre} ${cli.apellido}
 DNI: ${cli.dni} · CUIL: ${cli.cuil}
-Email: ${cli.email} · Tel: ${cli.tel}
-Empleador: ${cli.emp} · Antigüedad: ${cli.antig}
 
-─────────────────────────────────────
 PRIMERA — OBJETO
-${EMPRESA.nombre} entrega en préstamo a ${cli.nombre} ${cli.apellido} la suma de ${fmt(sol.monto)}, acreditada en la cuenta CBU/CVU N° ${cli.cbu}.
+${EMPRESA.nombre} entrega en préstamo ${fmt(sol.monto)}, acreditado en CBU/CVU N° ${cli.cbu}.
 
-SEGUNDA — DESTINO DE LOS FONDOS
-Uso personal del MUTUARIO. El cliente declara que los fondos no provienen ni serán destinados a actividades ilícitas.
+SEGUNDA — PLAZO Y DEVOLUCIÓN
+${sol.plazo} cuotas mensuales de ${fmt(sol.cuota)} con capital, intereses e IVA.
+Primera cuota: 30 días desde la acreditación.
 
-TERCERA — PLAZO Y DEVOLUCIÓN
-El préstamo se devolverá en ${sol.plazo} cuotas mensuales de ${fmt(sol.cuota)}, incluyendo capital, intereses e IVA. Primera cuota: 30 días corridos desde la acreditación.
-
-CUARTA — TASA DE INTERÉS
+TERCERA — TASA DE INTERÉS
 TNA: ${sol.tna}% con capitalización mensual + IVA 21%.
-TEA resultante: ${(((Math.pow(1+(sol?.tna/100/12)*1.21,12)-1)*100)).toFixed(2)}% (incluye IVA sobre intereses).
 
-QUINTA — INTERESES MORATORIOS
-En caso de mora: ${(sol?.tna*1.5).toFixed(2)}% TNA (150% de la tasa pactada) + IVA, desde el vencimiento hasta el pago efectivo. Mora automática sin interpelación previa (Art. 886 CCyCN).
+CUARTA — INTERESES MORATORIOS
+Mora automática: ${(sol?.tna*1.5).toFixed(2)}% TNA + IVA desde el vencimiento (Art. 886 CCyCN).
 
-SEXTA — FORMA DE PAGO
-Débito automático en CBU/CVU N° ${cli.cbu}. El cliente se compromete a mantener saldo suficiente con 48hs de anticipación al vencimiento.
+QUINTA — FORMA DE PAGO
+Débito automático en CBU/CVU N° ${cli.cbu}.
 
-SÉPTIMA — CANCELACIÓN ANTICIPADA
-Permitida en cualquier momento abonando capital adeudado + intereses devengados. Sin penalidades (Art. 1388 CCyCN).
+SEXTA — CANCELACIÓN ANTICIPADA
+Permitida sin penalidades (Art. 1388 CCyCN).
 
-OCTAVA — DATOS PERSONALES
-El cliente autoriza la consulta y reporte ante BCRA, Nosis y similares, y el tratamiento de datos conforme Ley 25.326.
+SÉPTIMA — JURISDICCIÓN
+Tribunales Ordinarios de la CABA.
 
-NOVENA — DOMICILIOS
-Empresa: ${EMPRESA.domicilio}
-Cliente: domicilio declarado, email ${cli.email}, tel ${cli.tel}.
-
-DÉCIMA — JURISDICCIÓN
-Tribunales Ordinarios de la Ciudad Autónoma de Buenos Aires.
-
-DÉCIMO PRIMERA — FIRMA DIGITAL
-Suscripto mediante firma digital conforme Ley 25.506. La aceptación electrónica tiene plena validez jurídica.`}
-              </pre>
+OCTAVA — FIRMA DIGITAL
+Suscripto conforme Ley 25.506 con plena validez jurídica.`}</pre>
             </div>
-
-            {/* Campos de firma */}
             <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
               <div style={{fontSize:11,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:16}}>FIRMA DEL CONTRATO DE MUTUO</div>
-              
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:7}}>ACLARACIÓN (nombre y apellido completo)</div>
                 <input value={aclaracion} onChange={e=>setAclaracion(e.target.value)} placeholder={`${cli.nombre} ${cli.apellido}`}
                   style={{width:'100%',padding:'10px 14px',border:`1.5px solid ${aclaracion?C.gold:C.border2}`,borderRadius:8,fontSize:13,color:C.text,background:'rgba(255,255,255,0.05)',fontFamily:'inherit',fontWeight:700,boxSizing:'border-box',outline:'none'}}/>
               </div>
-
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:7}}>CONFIRMAR NÚMERO DE DNI</div>
                 <input value={dniConfirmado} onChange={e=>setDniConfirmado(e.target.value)} placeholder="Ingrese su DNI"
@@ -479,16 +350,11 @@ Suscripto mediante firma digital conforme Ley 25.506. La aceptación electrónic
                   <div style={{fontSize:11,color:C.red,marginTop:4,fontWeight:700}}>⚠️ El DNI no coincide con el registrado</div>
                 )}
               </div>
-
               <CanvasFirma onFirma={setFirmaMutuo} label="FIRMA OLÓGRAFA DIGITAL"/>
             </div>
-
             <div style={{display:'flex',gap:12}}>
-              <button onClick={()=>setPaso('bienvenida')} style={{flex:1,background:'rgba(255,255,255,0.06)',color:C.text2,border:`1px solid ${C.border}`,padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                ← ATRÁS
-              </button>
-              <button onClick={()=>setPaso('leyendo_pagare')}
-                disabled={!firmaMutuo||!aclaracion||dniConfirmado!==cli.dni}
+              <button onClick={()=>setPaso('bienvenida')} style={{flex:1,background:'rgba(255,255,255,0.06)',color:C.text2,border:`1px solid ${C.border}`,padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>← ATRÁS</button>
+              <button onClick={()=>setPaso('leyendo_pagare')} disabled={!firmaMutuo||!aclaracion||dniConfirmado!==cli.dni}
                 style={{flex:2,background:(!firmaMutuo||!aclaracion||dniConfirmado!==cli.dni)?'rgba(200,146,42,0.3)':C.gold,color:'#fff',border:'none',padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:(!firmaMutuo||!aclaracion||dniConfirmado!==cli.dni)?'not-allowed':'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase',opacity:(!firmaMutuo||!aclaracion||dniConfirmado!==cli.dni)?0.5:1}}>
                 CONTINUAR → FIRMAR PAGARÉ
               </button>
@@ -496,7 +362,6 @@ Suscripto mediante firma digital conforme Ley 25.506. La aceptación electrónic
           </div>
         )}
 
-        {/* ── LECTURA PAGARÉ ── */}
         {paso === 'leyendo_pagare' && (
           <div>
             <div style={{marginBottom:16}}>
@@ -504,37 +369,28 @@ Suscripto mediante firma digital conforme Ley 25.506. La aceptación electrónic
               <div style={{fontSize:16,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.04em'}}>Pagaré Sin Protesto</div>
               <div style={{fontSize:12,color:C.text2,marginTop:4,fontWeight:400}}>Lea el documento completo antes de firmar</div>
             </div>
-
             <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:20,maxHeight:320,overflowY:'auto'}}>
-              <pre style={{fontSize:11,color:C.text2,fontFamily:'monospace',whiteSpace:'pre-wrap',lineHeight:1.7,margin:0}}>
-{`PAGARÉ SIN PROTESTO
+              <pre style={{fontSize:11,color:C.text2,fontFamily:'monospace',whiteSpace:'pre-wrap',lineHeight:1.7,margin:0}}>{`PAGARÉ SIN PROTESTO
 Decreto-Ley 5965/63 — Ley Cambiaria Argentina
 
-Lugar de emisión: Ciudad Autónoma de Buenos Aires
+Lugar: Ciudad Autónoma de Buenos Aires
 Fecha: ${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}
 Monto total: ${fmt(sol.cuota * sol.plazo)}
 
-─────────────────────────────────────
+Yo, ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil}, me obligo a pagar INCONDICIONALMENTE y SIN PROTESTO a la orden de ${EMPRESA.nombre}, CUIT ${EMPRESA.cuit}, la suma de ${fmt(sol.cuota * sol.plazo)}.
 
-Yo, ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil}, me obligo a pagar INCONDICIONALMENTE y SIN PROTESTO a la orden de ${EMPRESA.nombre}, CUIT ${EMPRESA.cuit}, en el domicilio sito en ${EMPRESA.domicilio}, la suma de ${fmt(sol.cuota * sol.plazo)}, correspondiente al total de capital e intereses del préstamo otorgado.
+FORMA DE PAGO: ${sol.plazo} cuotas mensuales de ${fmt(sol.cuota)}.
 
-FORMA DE PAGO: ${sol.plazo} cuotas mensuales de ${fmt(sol.cuota)}, venciendo la primera a los 30 días corridos de la acreditación del préstamo.
+TASA: TNA ${sol.tna}% + IVA 21%.
 
-TASA DE INTERÉS: TNA ${sol.tna}% + IVA 21%.
+CLÁUSULA SIN PROTESTO: Art. 50 Decreto-Ley 5965/63.
 
-CLÁUSULA SIN PROTESTO: Conforme Art. 50 del Decreto-Ley 5965/63, eximiendo al portador de efectuar el protesto por falta de pago para conservar las acciones cambiarias.
+FUERZA EJECUTIVA: Art. 520 CPCCN.
 
-LUGAR DE PAGO: ${EMPRESA.domicilio}, Ciudad Autónoma de Buenos Aires.
+JURISDICCIÓN: Tribunales Ordinarios de la CABA.
 
-JURISDICCIÓN: Tribunales Ordinarios de la Ciudad Autónoma de Buenos Aires.
-
-Este título tiene fuerza ejecutiva conforme Art. 520 y concordantes del CPCCN.
-
-─────────────────────────────────────
-Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni}`}
-              </pre>
+Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni}`}</pre>
             </div>
-
             <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
               <div style={{fontSize:11,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:16}}>FIRMA DEL PAGARÉ</div>
               <CanvasFirma onFirma={setFirmaPagare} label="FIRMA OLÓGRAFA DIGITAL"/>
@@ -542,11 +398,8 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni}`}
                 La aclaración y DNI ya fueron registrados en el paso anterior.
               </div>
             </div>
-
             <div style={{display:'flex',gap:12}}>
-              <button onClick={()=>setPaso('leyendo_mutuo')} style={{flex:1,background:'rgba(255,255,255,0.06)',color:C.text2,border:`1px solid ${C.border}`,padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                ← ATRÁS
-              </button>
+              <button onClick={()=>setPaso('leyendo_mutuo')} style={{flex:1,background:'rgba(255,255,255,0.06)',color:C.text2,border:`1px solid ${C.border}`,padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>← ATRÁS</button>
               <button onClick={()=>setPaso('selfie')} disabled={!firmaPagare}
                 style={{flex:2,background:!firmaPagare?'rgba(200,146,42,0.3)':C.gold,color:'#fff',border:'none',padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:!firmaPagare?'not-allowed':'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase',opacity:!firmaPagare?0.5:1}}>
                 CONTINUAR → VERIFICACIÓN DE IDENTIDAD
@@ -555,7 +408,6 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni}`}
           </div>
         )}
 
-        {/* ── SELFIE ── */}
         {paso === 'selfie' && (
           <div>
             <div style={{marginBottom:16}}>
@@ -563,7 +415,6 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni}`}
               <div style={{fontSize:16,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.04em'}}>Verificación de identidad</div>
               <div style={{fontSize:12,color:C.text2,marginTop:4,fontWeight:400}}>Tome una selfie sosteniendo su DNI abierto junto a su rostro</div>
             </div>
-
             <div style={{background:C.bg4,borderRadius:12,border:`1px solid ${C.border}`,padding:20,marginBottom:20}}>
               <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>INSTRUCCIONES</div>
               {['Sostenga su DNI abierto mostrando su foto','Asegúrese de que su rostro y el DNI sean claramente visibles','Use buena iluminación','La foto debe tomarse en este momento'].map((i,n)=>(
@@ -608,9 +459,7 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni}`}
             </div>
 
             <div style={{display:'flex',gap:12}}>
-              <button onClick={()=>setPaso('leyendo_pagare')} style={{flex:1,background:'rgba(255,255,255,0.06)',color:C.text2,border:`1px solid ${C.border}`,padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                ← ATRÁS
-              </button>
+              <button onClick={()=>setPaso('leyendo_pagare')} style={{flex:1,background:'rgba(255,255,255,0.06)',color:C.text2,border:`1px solid ${C.border}`,padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>← ATRÁS</button>
               <button onClick={completarFirma} disabled={!selfie||procesando}
                 style={{flex:2,background:(!selfie||procesando)?'rgba(26,107,60,0.4)':'#1A6B3C',color:'#fff',border:'none',padding:'12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:(!selfie||procesando)?'not-allowed':'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase',opacity:(!selfie||procesando)?0.6:1}}>
                 {procesando?'PROCESANDO...':'✓ FIRMAR Y FINALIZAR'}
