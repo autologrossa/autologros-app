@@ -212,7 +212,19 @@ export default function FirmaCliente() {
       videoRef.current.play();
       setCamaraActiva(true);
     } catch {
-      alert('No se pudo acceder a la cámara. Por favor permita el acceso e intente nuevamente.');
+      } catch {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
+      let msg = 'No se pudo acceder a la cámara.\n\n';
+      if (isIOS) {
+        msg += '📱 En iPhone/iPad:\n1. Abrí Configuración del iPhone\n2. Bajá hasta Safari\n3. Tocá "Cámara"\n4. Seleccioná "Permitir"\n5. Volvé a esta pantalla e intentá de nuevo.';
+      } else if (isAndroid) {
+        msg += '📱 En Android:\n1. Tocá los tres puntos del navegador\n2. Configuración → Permisos del sitio\n3. Cámara → Permitir\n4. Volvé a esta pantalla e intentá de nuevo.';
+      } else {
+        msg += '💻 En la barra de dirección del navegador tocá el candado 🔒 → Permisos → Cámara → Permitir.';
+      }
+      alert(msg);
+    }
     }
   }
 
