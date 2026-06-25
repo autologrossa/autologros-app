@@ -180,7 +180,7 @@ export default function FirmaCliente() {
       if (!s) { setPaso('invalido'); return; }
       
       // Verificar expiración (48hs)
-      const creacion = new Date(s.fecha_envio_contrato_iso || s.created_at);
+      const creacion = new Date(s.fecha_token_generado || s.fecha_envio_contrato_iso || new Date());
       const ahora = new Date();
       const diffHs = (ahora - creacion) / (1000 * 60 * 60);
       if (diffHs > 48) { setPaso('expirado'); return; }
