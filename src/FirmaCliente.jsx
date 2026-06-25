@@ -212,7 +212,6 @@ export default function FirmaCliente() {
       videoRef.current.play();
       setCamaraActiva(true);
     } catch {
-      } catch {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isAndroid = /Android/.test(navigator.userAgent);
       let msg = 'No se pudo acceder a la cámara.\n\n';
