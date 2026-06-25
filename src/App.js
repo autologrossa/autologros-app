@@ -843,7 +843,17 @@ function NuevaSol({user,lineas,onEnviada}){
               <span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:docs[d]?C.greenL:C.goldL,color:docs[d]?C.green:C.gold,border:`1px solid ${docs[d]?C.greenB:C.goldB}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>
                 {docs[d]?'CAMBIAR':'ADJUNTAR'}
               </span>
-              <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={e=>e.target.files[0]&&setDocs({...docs,[d]:e.target.files[0].name})}/>
+              <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  setDocs({...docs,[d]:'Subiendo...'});
+  try {
+    const url = await db.uploadDocumento(sol?.id||`TEMP-${Date.now()}`, d, file);
+    setDocs({...docs,[d]:url});
+  } catch {
+    setDocs({...docs,[d]:file.name});
+  }
+}}/>
             </label>
           </div>
         ))}
