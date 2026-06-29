@@ -857,12 +857,13 @@ function NuevaSol({user,lineas,onEnviada}){
               <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
                 const file=e.target.files[0];
                 if(!file)return;
-                setDocs({...docs,[d]:'Subiendo...'});
+                const docNombre=d;
+                setDocs(prev=>({...prev,[docNombre]:'Subiendo...'}));
                 try{
-                  const url=await db.uploadDocumento(solId,d,file);
-                  setDocs({...docs,[d]:url});
+                  const url=await db.uploadDocumento(f.dni||solId,docNombre,file);
+                  setDocs(prev=>({...prev,[docNombre]:url}));
                 }catch{
-                  setDocs({...docs,[d]:file.name});
+                  setDocs(prev=>({...prev,[docNombre]:file.name}));
                 }
               }}/>
             </label>
@@ -876,12 +877,13 @@ function NuevaSol({user,lineas,onEnviada}){
               <label style={{cursor:'pointer'}}><span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:'rgba(255,255,255,0.05)',color:C.text2,border:`1px solid ${C.border}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>{docs[d]?'CAMBIAR':'ADJUNTAR'}</span><input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
                 const file=e.target.files[0];
                 if(!file)return;
-                setDocs({...docs,[d]:'Subiendo...'});
+                const docNombre=d;
+                setDocs(prev=>({...prev,[docNombre]:'Subiendo...'}));
                 try{
-                  const url=await db.uploadDocumento(f.dni||solId,d,file);
-                  setDocs({...docs,[d]:url});
+                  const url=await db.uploadDocumento(f.dni||solId,docNombre,file);
+                  setDocs(prev=>({...prev,[docNombre]:url}));
                 }catch{
-                  setDocs({...docs,[d]:file.name});
+                  setDocs(prev=>({...prev,[docNombre]:file.name}));
                 }
               }}/></label>
             </div>
