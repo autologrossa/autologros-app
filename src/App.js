@@ -679,9 +679,7 @@ function Analista({user,onLogout}){
                           {s.estado==='aprobado'&&!s.firma_cliente_completada&&(
                             <button onClick={async()=>{
                               await db.supabase.from('solicitudes').update({token_firma:s.id,fecha_token_generado:new Date().toISOString(),firma_cliente_completada:false}).eq('id',s.id);
-                              const tel=(s.cliente?.tel||'').replace(/[^0-9]/g,'');
-              const msg=encodeURIComponent(`Hola ${s.cliente?.nombre}, le escribimos desde AUTOLOGROS S.A.\n\nSu préstamo ha sido aprobado. Firme los documentos en:\n\nautologros-app.vercel.app/firma/${s.id}\n\nEnlace personal e intransferible.\n\nGracias,\nAutologros S.A.`);
-              window.open(`https://wa.me/${tel}?text=${msg}`,'_blank');
+                              alert(`✓ Link regenerado:\nautologros-app.vercel.app/firma/${s.id}`);
                             }} style={{background:'rgba(200,146,42,0.15)',color:C.gold,border:`1px solid rgba(200,146,42,0.25)`,borderRadius:6,padding:'5px 10px',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.04em',textTransform:'uppercase',whiteSpace:'nowrap'}}>
                               ↻ REENVIAR
                             </button>
@@ -744,6 +742,7 @@ function NuevaSol({user,lineas,onEnviada}){
   const [s1,setS1]=useState('');const [s2,setS2]=useState('');const [s3,setS3]=useState('');
   const [monto,setMonto]=useState('');const [f,setF]=useState({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});
   const [docs,setDocs]=useState({});const [env,setEnv]=useState(false);const [ok,setOk]=useState(false);
+  const [solId]=useState(`SOL-${Date.now()}`);
 
   const linea=lineas.find(l=>l.id===lid);
   const prom=s1&&s2&&s3?(parseFloat(s1)+parseFloat(s2)+parseFloat(s3))/3:0;
@@ -754,7 +753,6 @@ function NuevaSol({user,lineas,onEnviada}){
 
   async function enviar(){
     setEnv(true);
-    const solId=`SOL-${Date.now()}`;
     await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docs),estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
     setEnv(false);setOk(true);
   }
@@ -856,7 +854,17 @@ function NuevaSol({user,lineas,onEnviada}){
               <span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:docs[d]?C.greenL:C.goldL,color:docs[d]?C.green:C.gold,border:`1px solid ${docs[d]?C.greenB:C.goldB}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>
                 {docs[d]?'CAMBIAR':'ADJUNTAR'}
               </span>
-              <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={e=>e.target.files[0]&&setDocs({...docs,[d]:e.target.files[0].name})}/>
+              <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
+                const file=e.target.files[0];
+                if(!file)return;
+                setDocs({...docs,[d]:'Subiendo...'});
+                try{
+                  const url=await db.uploadDocumento(solId,d,file);
+                  setDocs({...docs,[d]:url});
+                }catch{
+                  setDocs({...docs,[d]:file.name});
+                }
+              }}/>
             </label>
           </div>
         ))}
