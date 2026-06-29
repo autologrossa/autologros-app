@@ -679,7 +679,9 @@ function Analista({user,onLogout}){
                           {s.estado==='aprobado'&&!s.firma_cliente_completada&&(
                             <button onClick={async()=>{
                               await db.supabase.from('solicitudes').update({token_firma:s.id,fecha_token_generado:new Date().toISOString(),firma_cliente_completada:false}).eq('id',s.id);
-                              alert(`✓ Link regenerado:\nautologros-app.vercel.app/firma/${s.id}`);
+                              const tel=(s.cliente?.tel||'').replace(/[^0-9]/g,'');
+              const msg=encodeURIComponent(`Hola ${s.cliente?.nombre}, le escribimos desde AUTOLOGROS S.A.\n\nSu préstamo ha sido aprobado. Firme los documentos en:\n\nautologros-app.vercel.app/firma/${s.id}\n\nEnlace personal e intransferible.\n\nGracias,\nAutologros S.A.`);
+              window.open(`https://wa.me/${tel}?text=${msg}`,'_blank');
                             }} style={{background:'rgba(200,146,42,0.15)',color:C.gold,border:`1px solid rgba(200,146,42,0.25)`,borderRadius:6,padding:'5px 10px',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.04em',textTransform:'uppercase',whiteSpace:'nowrap'}}>
                               ↻ REENVIAR
                             </button>
