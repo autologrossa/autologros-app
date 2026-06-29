@@ -653,7 +653,7 @@ function Analista({user,onLogout}){
                 <table style={{width:'100%',borderCollapse:'collapse'}}>
                   <thead>
                     <tr>
-                      {['CLIENTE','LÍNEA / MONTO','CUOTA','EMBAJADOR','FECHA','ESTADO','OBSERVACIÓN'].map(h=>(
+                      {['CLIENTE','LÍNEA / MONTO','CUOTA','EMBAJADOR','FECHA','ESTADO','OBSERVACIÓN',''].map(h=>(
                         <th key={h} style={{background:C.bg3,color:C.text2,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'10px 14px',textAlign:'left',borderBottom:`1px solid ${C.border}`}}>{h}</th>
                       ))}
                     </tr>
@@ -675,6 +675,16 @@ function Analista({user,onLogout}){
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.fecha}</td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:s.estado==='rechazado'?C.red:C.text3,fontSize:11,fontWeight:400,maxWidth:200}}>{s.obs||'—'}</td>
+                        <td style={{padding:'8px 14px',borderBottom:`1px solid ${C.border}`}} onClick={e=>e.stopPropagation()}>
+                          {s.estado==='aprobado'&&!s.firma_cliente_completada&&(
+                            <button onClick={async()=>{
+                              await db.supabase.from('solicitudes').update({token_firma:s.id,fecha_token_generado:new Date().toISOString(),firma_cliente_completada:false}).eq('id',s.id);
+                              alert(`✓ Link regenerado:\nautologros-app.vercel.app/firma/${s.id}`);
+                            }} style={{background:'rgba(200,146,42,0.15)',color:C.gold,border:`1px solid rgba(200,146,42,0.25)`,borderRadius:6,padding:'5px 10px',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.04em',textTransform:'uppercase',whiteSpace:'nowrap'}}>
+                              ↻ REENVIAR
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -742,7 +752,8 @@ function NuevaSol({user,lineas,onEnviada}){
 
   async function enviar(){
     setEnv(true);
-    await db.saveSolicitud({id:`SOL-${Date.now()}`,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docs),estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS'});
+    const solId=`SOL-${Date.now()}`;
+    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docs),estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
     setEnv(false);setOk(true);
   }
   const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});};
@@ -843,17 +854,7 @@ function NuevaSol({user,lineas,onEnviada}){
               <span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:docs[d]?C.greenL:C.goldL,color:docs[d]?C.green:C.gold,border:`1px solid ${docs[d]?C.greenB:C.goldB}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>
                 {docs[d]?'CAMBIAR':'ADJUNTAR'}
               </span>
-              <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  setDocs({...docs,[d]:'Subiendo...'});
-  try {
-    const url = await db.uploadDocumento(sol?.id||`TEMP-${Date.now()}`, d, file);
-    setDocs({...docs,[d]:url});
-  } catch {
-    setDocs({...docs,[d]:file.name});
-  }
-}}/>
+              <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={e=>e.target.files[0]&&setDocs({...docs,[d]:e.target.files[0].name})}/>
             </label>
           </div>
         ))}
