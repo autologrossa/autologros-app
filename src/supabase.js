@@ -65,7 +65,7 @@ export const db = {
       cliente: sol.cli, docs: sol.docs, estado: sol.estado,
       estado_texto: sol.estadoTexto, obs: '',
 token_firma: sol.tokenFirma || sol.id,
-fecha_token_generado: sol.fechaTokenGenerado || new Date().toISOString()
+fecha_token_generado: sol.fechaTokenGenerado || new Date().toISOString(),docs_urls: sol.docsUrls || {}
     });
     if (error) throw error;
   },
