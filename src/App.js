@@ -873,7 +873,17 @@ function NuevaSol({user,lineas,onEnviada}){
           {(linea.docsOpc||[]).map(d=>(
             <div key={d} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:8,marginBottom:8,border:`1px solid ${docs[d]?C.greenB:C.border}`,background:docs[d]?C.greenL:'rgba(255,255,255,0.02)'}}>
               <div style={{display:'flex',alignItems:'center',gap:10}}><span style={{fontSize:18}}>{docs[d]?'✅':'📄'}</span><span style={{fontSize:12,color:C.text,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>{d}</span></div>
-              <label style={{cursor:'pointer'}}><span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:'rgba(255,255,255,0.05)',color:C.text2,border:`1px solid ${C.border}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>{docs[d]?'CAMBIAR':'ADJUNTAR'}</span><input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={e=>e.target.files[0]&&setDocs({...docs,[d]:e.target.files[0].name})}/></label>
+              <label style={{cursor:'pointer'}}><span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:'rgba(255,255,255,0.05)',color:C.text2,border:`1px solid ${C.border}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>{docs[d]?'CAMBIAR':'ADJUNTAR'}</span><input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
+                const file=e.target.files[0];
+                if(!file)return;
+                setDocs({...docs,[d]:'Subiendo...'});
+                try{
+                  const url=await db.uploadDocumento(f.dni||solId,d,file);
+                  setDocs({...docs,[d]:url});
+                }catch{
+                  setDocs({...docs,[d]:file.name});
+                }
+              }}/></label>
             </div>
           ))}
         </>}
