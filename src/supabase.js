@@ -63,7 +63,9 @@ export const db = {
       linea_id: sol.lineaId, linea_nombre: sol.lineaNombre, plazo: sol.plazo,
       monto: sol.monto, tna: sol.tna, cuota: sol.cuota, prom_sueldo: sol.promSueldo,
       cliente: sol.cli, docs: sol.docs, estado: sol.estado,
-      estado_texto: sol.estadoTexto, obs: ''
+      estado_texto: sol.estadoTexto, obs: '',
+token_firma: sol.tokenFirma || sol.id,
+fecha_token_generado: sol.fechaTokenGenerado || new Date().toISOString()
     });
     if (error) throw error;
   },
