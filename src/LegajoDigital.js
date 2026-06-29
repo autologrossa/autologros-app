@@ -75,12 +75,17 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
   const colorSit = sit => sit === 1 ? C.green : sit === 2 ? C.gold : C.red;
 
   // Construir mapa de documentos: nombre -> url o nombre
+  // Priorizar docs_urls (objeto con URLs reales) sobre docs (array de nombres)
   const docsMap = {};
-  if (sol?.docs) {
+  if (sol?.docs_urls && Object.keys(sol.docs_urls).length > 0) {
+    // Nuevo formato: objeto {nombre: url}
+    Object.entries(sol.docs_urls).forEach(([nombre, valor]) => {
+      docsMap[nombre] = valor;
+    });
+  } else if (sol?.docs) {
+    // Formato anterior: array de nombres
     sol.docs.forEach(d => {
-      // Si es una URL completa, es un archivo subido
       if (typeof d === 'string' && d.startsWith('http')) {
-        // extraer nombre del path
         const partes = d.split('/');
         const nombreArchivo = decodeURIComponent(partes[partes.length - 1] || d);
         docsMap[nombreArchivo] = d;
