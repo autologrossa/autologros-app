@@ -485,6 +485,8 @@ function PanelInformes({sols}){
           {s.obs&&<div style={{marginTop:14,padding:'10px 14px',background:'rgba(255,255,255,0.03)',borderRadius:8,border:`1px solid ${C.border}`,fontSize:12,color:C.text2,fontWeight:400,whiteSpace:'pre-line'}}>{s.obs}</div>}
         </Card>
 
+        <PanelVisualCredito bcra={bcra} nosis={nosis} cuil={cli.cuil} />
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           {/* BCRA */}
           <Card style={{padding:20}}>
@@ -1123,6 +1125,161 @@ function evaluarCredito(bcra, nosis, prom30) {
   return { aprobado, conObservaciones, rechazos, alertas };
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PANEL VISUAL DE ANÁLISIS CREDITICIO — Gráficos simulados (hasta Nosis real)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function generarComposicionDeuda(bcra, nosis) {
+  // Si hay deudas reales del BCRA, usarlas
+  if (bcra?.ok && bcra.deudas && bcra.deudas.length > 0) {
+    return bcra.deudas.slice(0, 5).map(d => ({
+      label: d.entidad || 'Entidad',
+      valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 50000) + 10000,
+    }));
+  }
+  // Simulación basada en compromiso mensual de Nosis
+  const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
+  const base = compMens > 0 ? compMens * 8 : 45000;
+  return [
+    { label: 'Tarjeta de Crédito', valor: Math.round(base * 0.42) },
+    { label: 'Préstamo Personal', valor: Math.round(base * 0.31) },
+    { label: 'Financiera', valor: Math.round(base * 0.18) },
+    { label: 'Otros', valor: Math.round(base * 0.09) },
+  ];
+}
+
+function generarEvolucionDeuda(bcra, nosis) {
+  const meses = ['Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar','Abr','May','Jun'];
+  const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
+  const baseFinal = compMens > 0 ? compMens * 8 : 45000;
+  const tendencia = bcra?.ok && bcra.peorSit >= 2 ? 1.06 : 0.97; // creciente si hay riesgo, decreciente si está bien
+  let valor = baseFinal / Math.pow(tendencia, 11);
+  const seed = (bcra?.cantEntidades || 1) * 17 + (nosis?.consultas12m || 3) * 7;
+  return meses.map((mes, i) => {
+    const ruido = 1 + (((seed * (i + 1)) % 13) - 6) / 100;
+    valor = i === 11 ? baseFinal : valor * tendencia * ruido;
+    return { mes, valor: Math.max(0, Math.round(valor)) };
+  });
+}
+
+const PIE_COLORS = ['#4A9AE0', '#C8922A', '#4AE08A', '#E05050', '#9B7ED8'];
+
+function DonutChart({ data, size = 180 }) {
+  const total = data.reduce((s, d) => s + d.valor, 0) || 1;
+  const r = size / 2 - 14;
+  const cx = size / 2, cy = size / 2;
+  let anguloAcum = -90;
+  const arcos = data.map((d, i) => {
+    const pct = d.valor / total;
+    const anguloInicio = anguloAcum;
+    const anguloFin = anguloAcum + pct * 360;
+    anguloAcum = anguloFin;
+    const toRad = a => (a * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(toRad(anguloInicio));
+    const y1 = cy + r * Math.sin(toRad(anguloInicio));
+    const x2 = cx + r * Math.cos(toRad(anguloFin));
+    const y2 = cy + r * Math.sin(toRad(anguloFin));
+    const largeArc = anguloFin - anguloInicio > 180 ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    return { path, color: PIE_COLORS[i % PIE_COLORS.length], pct };
+  });
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {arcos.map((a, i) => (
+        <path key={i} d={a.path} fill={a.color} stroke="#0A1F3A" strokeWidth="2" opacity="0.92" />
+      ))}
+      <circle cx={cx} cy={cy} r={r * 0.55} fill="#0D2540" />
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="11" fontWeight="900" fill="#fff">DEUDA</text>
+      <text x={cx} y={cy + 12} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.5)">TOTAL</text>
+    </svg>
+  );
+}
+
+function BarChartEvolucion({ data, height = 140 }) {
+  const max = Math.max(...data.map(d => d.valor), 1);
+  const barW = 100 / data.length;
+  return (
+    <svg width="100%" height={height + 30} viewBox={`0 0 300 ${height + 30}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+      {data.map((d, i) => {
+        const h = (d.valor / max) * height;
+        const x = i * (300 / data.length) + 2;
+        const w = (300 / data.length) - 4;
+        const esUltimo = i === data.length - 1;
+        return (
+          <g key={i}>
+            <rect x={x} y={height - h} width={w} height={h} rx="2" fill={esUltimo ? '#C8922A' : '#4A9AE0'} opacity={esUltimo ? 1 : 0.65} />
+            <text x={x + w / 2} y={height + 14} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.45)" fontWeight="700">{d.mes}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ImagenBureau({ cuil }) {
+  return (
+    <div style={{ background: '#0A1F3A', borderRadius: 10, border: `1px solid ${C.border}`, padding: 16, textAlign: 'center' }}>
+      <svg width="100%" height="90" viewBox="0 0 240 90">
+        <rect x="6" y="6" width="228" height="78" rx="8" fill="#0D2540" stroke="#C8922A" strokeWidth="1.5"/>
+        <circle cx="32" cy="30" r="10" fill="none" stroke="#4A9AE0" strokeWidth="2"/>
+        <path d="M 24 46 Q 32 36 40 46" fill="none" stroke="#4A9AE0" strokeWidth="2"/>
+        <text x="50" y="26" fontSize="9" fontWeight="900" fill="#fff">INFORME CREDITICIO</text>
+        <text x="50" y="38" fontSize="7" fill="rgba(255,255,255,0.5)">CUIL {cuil || 'N/D'}</text>
+        <line x1="50" y1="44" x2="220" y2="44" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
+        <rect x="50" y="50" width="50" height="6" rx="3" fill="rgba(74,154,224,0.4)"/>
+        <rect x="106" y="50" width="35" height="6" rx="3" fill="rgba(74,224,138,0.4)"/>
+        <rect x="147" y="50" width="60" height="6" rx="3" fill="rgba(200,146,42,0.4)"/>
+        <rect x="50" y="62" width="80" height="6" rx="3" fill="rgba(255,255,255,0.15)"/>
+        <rect x="136" y="62" width="40" height="6" rx="3" fill="rgba(255,255,255,0.15)"/>
+        <text x="50" y="80" fontSize="6" fill="rgba(255,255,255,0.3)" fontStyle="italic">Documento simulado — Bureau Nosis</text>
+      </svg>
+    </div>
+  );
+}
+
+function PanelVisualCredito({ bcra, nosis, cuil }) {
+  const composicion = generarComposicionDeuda(bcra, nosis);
+  const evolucion = generarEvolucionDeuda(bcra, nosis);
+  const totalDeuda = composicion.reduce((s, d) => s + d.valor, 0);
+  return (
+    <Card style={{ padding: 20, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em' }}>ANÁLISIS VISUAL — SITUACIÓN CREDITICIA</div>
+        <div style={{ fontSize: 9, background: C.goldL, color: C.gold, padding: '3px 10px', borderRadius: 12, fontWeight: 700, border: `1px solid ${C.goldB}`, textTransform: 'uppercase' }}>⚠️ Modo simulación</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>BUREAU</div>
+          <ImagenBureau cuil={cuil} />
+        </div>
+        <div>
+          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>COMPOSICIÓN DE DEUDA</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <DonutChart data={composicion} size={110} />
+            <div style={{ flex: 1 }}>
+              {composicion.map((d, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }}/>
+                  <div style={{ fontSize: 8, color: C.text2, fontWeight: 600 }}>{d.label}</div>
+                </div>
+              ))}
+              <div style={{ fontSize: 10, color: C.gold, fontWeight: 900, marginTop: 6 }}>{fmt(totalDeuda)}</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>EVOLUCIÓN 12 MESES</div>
+          <BarChartEvolucion data={evolucion} height={100} />
+        </div>
+      </div>
+      <div style={{ marginTop: 12, fontSize: 9, color: C.text3, fontStyle: 'italic' }}>
+        Datos ilustrativos generados automáticamente mientras la integración con Nosis no esté contratada. No representan información crediticia real.
+      </div>
+    </Card>
+  );
+}
+
 function ModuloB({ sol, onVolver, onActualizar, user }) {
   const [loading, setLoading] = useState(false);
   const [bcraData, setBcraData] = useState(null);
@@ -1343,6 +1500,8 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                 )}
               </Card>
             </div>
+
+            <PanelVisualCredito bcra={bcra} nosis={nosis} cuil={cli.cuil} />
 
             {simulado && (
               <div style={{ background: 'rgba(200,146,42,0.1)', border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
