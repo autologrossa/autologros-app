@@ -843,56 +843,81 @@ function NuevaSol({user,lineas,onEnviada}){
       {paso===3&&linea&&<Card style={{padding:32}}>
         <div style={{fontSize:15,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:20}}>DOCUMENTACIÓN</div>
         <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>OBLIGATORIOS</div>
-        {(linea.docsReq||[]).map(d=>(
-          <div key={d} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:8,marginBottom:8,border:`1px solid ${docs[d]?C.greenB:C.border}`,background:docs[d]?C.greenL:'rgba(255,255,255,0.02)'}}>
+        {(linea.docsReq||[]).map(d=>{
+          const esUrl=docs[d]&&docs[d].startsWith('http');
+          const subiendo=docs[d]==='Subiendo...';
+          const tieneDoc=!!docs[d];
+          return (
+          <div key={d} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:8,marginBottom:8,border:`1px solid ${esUrl?C.greenB:tieneDoc?C.goldB:C.border}`,background:esUrl?C.greenL:tieneDoc?C.goldL:'rgba(255,255,255,0.02)'}}>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
-              <span style={{fontSize:18}}>{docs[d]?'✅':'📄'}</span>
+              <span style={{fontSize:18}}>{esUrl?'✅':subiendo?'⏳':'📄'}</span>
               <span style={{fontSize:12,color:C.text,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>{d}</span>
               <span style={{fontSize:11,color:C.gold}}>*</span>
+              {subiendo&&<span style={{fontSize:10,color:C.gold,fontWeight:700}}>SUBIENDO...</span>}
+              {esUrl&&<span style={{fontSize:10,color:C.green,fontWeight:700}}>✓ SUBIDO</span>}
             </div>
-            <label style={{cursor:'pointer'}}>
-              <span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:docs[d]?C.greenL:C.goldL,color:docs[d]?C.green:C.gold,border:`1px solid ${docs[d]?C.greenB:C.goldB}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>
-                {docs[d]?'CAMBIAR':'ADJUNTAR'}
+            <label style={{cursor:subiendo?'not-allowed':'pointer',opacity:subiendo?0.5:1}}>
+              <span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:esUrl?C.greenL:C.goldL,color:esUrl?C.green:C.gold,border:`1px solid ${esUrl?C.greenB:C.goldB}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>
+                {subiendo?'SUBIENDO..':esUrl?'CAMBIAR':'ADJUNTAR'}
               </span>
-              <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
+              <input type="file" accept="image/*,.pdf" style={{display:'none'}} disabled={subiendo} onChange={async e=>{
                 const file=e.target.files[0];
                 if(!file)return;
                 const docNombre=d;
+                const dni=f.dni||solId;
                 setDocs(prev=>({...prev,[docNombre]:'Subiendo...'}));
                 try{
-                  const url=await db.uploadDocumento(f.dni||solId,docNombre,file);
+                  const url=await db.uploadDocumento(dni,docNombre,file);
                   setDocs(prev=>({...prev,[docNombre]:url}));
-                }catch{
-                  setDocs(prev=>({...prev,[docNombre]:file.name}));
+                }catch(err){
+                  console.error('Upload error:',err);
+                  setDocs(prev=>({...prev,[docNombre]:null}));
+                  alert(`Error al subir ${docNombre}. Intentá de nuevo.`);
                 }
               }}/>
             </label>
           </div>
-        ))}
+        );})}
         {(linea.docsOpc||[]).length>0&&<>
           <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',margin:'16px 0 12px'}}>OPCIONALES</div>
-          {(linea.docsOpc||[]).map(d=>(
-            <div key={d} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:8,marginBottom:8,border:`1px solid ${docs[d]?C.greenB:C.border}`,background:docs[d]?C.greenL:'rgba(255,255,255,0.02)'}}>
-              <div style={{display:'flex',alignItems:'center',gap:10}}><span style={{fontSize:18}}>{docs[d]?'✅':'📄'}</span><span style={{fontSize:12,color:C.text,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>{d}</span></div>
-              <label style={{cursor:'pointer'}}><span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:'rgba(255,255,255,0.05)',color:C.text2,border:`1px solid ${C.border}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>{docs[d]?'CAMBIAR':'ADJUNTAR'}</span><input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
-                const file=e.target.files[0];
-                if(!file)return;
-                const docNombre=d;
-                setDocs(prev=>({...prev,[docNombre]:'Subiendo...'}));
-                try{
-                  const url=await db.uploadDocumento(f.dni||solId,docNombre,file);
-                  setDocs(prev=>({...prev,[docNombre]:url}));
-                }catch{
-                  setDocs(prev=>({...prev,[docNombre]:file.name}));
-                }
-              }}/></label>
+          {(linea.docsOpc||[]).map(d=>{
+            const esUrl=docs[d]&&docs[d].startsWith('http');
+            const subiendo=docs[d]==='Subiendo...';
+            return (
+            <div key={d} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:8,marginBottom:8,border:`1px solid ${esUrl?C.greenB:C.border}`,background:esUrl?C.greenL:'rgba(255,255,255,0.02)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <span style={{fontSize:18}}>{esUrl?'✅':subiendo?'⏳':'📄'}</span>
+                <span style={{fontSize:12,color:C.text,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>{d}</span>
+                {subiendo&&<span style={{fontSize:10,color:C.gold,fontWeight:700}}>SUBIENDO...</span>}
+                {esUrl&&<span style={{fontSize:10,color:C.green,fontWeight:700}}>✓ SUBIDO</span>}
+              </div>
+              <label style={{cursor:subiendo?'not-allowed':'pointer',opacity:subiendo?0.5:1}}>
+                <span style={{fontSize:11,padding:'6px 14px',borderRadius:6,fontWeight:700,background:'rgba(255,255,255,0.05)',color:C.text2,border:`1px solid ${C.border}`,letterSpacing:'0.06em',textTransform:'uppercase'}}>{subiendo?'SUBIENDO..':esUrl?'CAMBIAR':'ADJUNTAR'}</span>
+                <input type="file" accept="image/*,.pdf" style={{display:'none'}} disabled={subiendo} onChange={async e=>{
+                  const file=e.target.files[0];
+                  if(!file)return;
+                  const docNombre=d;
+                  const dni=f.dni||solId;
+                  setDocs(prev=>({...prev,[docNombre]:'Subiendo...'}));
+                  try{
+                    const url=await db.uploadDocumento(dni,docNombre,file);
+                    setDocs(prev=>({...prev,[docNombre]:url}));
+                  }catch(err){
+                    console.error('Upload error:',err);
+                    setDocs(prev=>({...prev,[docNombre]:null}));
+                    alert(`Error al subir ${docNombre}. Intentá de nuevo.`);
+                  }
+                }}/>
+              </label>
             </div>
-          ))}
+          );})}
         </>}
-        {(linea.docsReq||[]).some(d=>!docs[d])&&<div style={{background:C.goldL,border:`1px solid ${C.goldB}`,borderRadius:8,padding:'10px 14px',fontSize:11,color:C.gold,marginTop:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>FALTAN: {(linea.docsReq||[]).filter(d=>!docs[d]).join(' · ')}</div>}
+        {(linea.docsReq||[]).some(d=>!docs[d]||docs[d]==='Subiendo...')&&<div style={{background:C.goldL,border:`1px solid ${C.goldB}`,borderRadius:8,padding:'10px 14px',fontSize:11,color:C.gold,marginTop:12,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.04em'}}>
+          {(linea.docsReq||[]).some(d=>docs[d]==='Subiendo...')?'⏳ AGUARDÁ — HAY ARCHIVOS SUBIENDO...':`FALTAN: ${(linea.docsReq||[]).filter(d=>!docs[d]).join(' · ')}`}
+        </div>}
         <div style={{display:'flex',justifyContent:'space-between',marginTop:22}}>
           <Btn onClick={()=>setPaso(2)} variant="sec">← ATRÁS</Btn>
-          <Btn onClick={()=>setPaso(4)} disabled={(linea.docsReq||[]).some(d=>!docs[d])}>CONTINUAR →</Btn>
+          <Btn onClick={()=>setPaso(4)} disabled={(linea.docsReq||[]).some(d=>!docs[d]||docs[d]==='Subiendo...')}>CONTINUAR →</Btn>
         </div>
       </Card>}
 
