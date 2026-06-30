@@ -43,20 +43,35 @@ function Campo({ label, valor, color, span }) {
   );
 }
 
-// ── Componente de documento — link si es URL, etiqueta si es nombre ────────────
+// ── Componente de documento — miniatura de imagen, icono de PDF, o etiqueta ────
 function DocItem({ nombre, valor }) {
   const esUrl = typeof valor === 'string' && valor.startsWith('http');
+  const esImagen = esUrl && /\.(jpe?g|png|gif|webp)$/i.test(valor);
+
+  if (esImagen) {
+    return (
+      <a href={valor} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+        <div style={{ background: C.bg4, border: `1px solid ${C.greenB}`, borderRadius: 8, padding: 8, width: 140 }}>
+          <img src={valor} alt={nombre} style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 6, marginBottom: 6, display: 'block' }}/>
+          <div style={{ fontSize: 9, color: C.green, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.3 }}>{nombre} <span style={{opacity:0.6}}>↗</span></div>
+        </div>
+      </a>
+    );
+  }
   if (esUrl) {
     return (
-      <a href={valor} target="_blank" rel="noopener noreferrer"
-        style={{ background: C.greenL, border: `1px solid ${C.greenB}`, borderRadius: 8, padding: '8px 14px', fontSize: 12, color: C.green, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        📄 {nombre} <span style={{ fontSize: 10, opacity: 0.7 }}>↗</span>
+      <a href={valor} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+        <div style={{ background: C.bg4, border: `1px solid ${C.greenB}`, borderRadius: 8, padding: 8, width: 140, height: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 6 }}>📄</div>
+          <div style={{ fontSize: 9, color: C.green, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', textAlign: 'center', lineHeight: 1.3 }}>{nombre} <span style={{opacity:0.6}}>↗</span></div>
+        </div>
       </a>
     );
   }
   return (
-    <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '8px 14px', fontSize: 12, color: C.gold, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-      📎 {nombre}
+    <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: 8, width: 140, height: 130, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 32, marginBottom: 6 }}>📎</div>
+      <div style={{ fontSize: 9, color: C.gold, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', textAlign: 'center', lineHeight: 1.3 }}>{nombre}</div>
     </div>
   );
 }
