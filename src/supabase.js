@@ -98,7 +98,11 @@ fecha_token_generado: sol.fechaTokenGenerado || new Date().toISOString(),docs_ur
   },
  async uploadDocumento(solicitudId, nombreDoc, archivo) {
     const ext = archivo.name.split('.').pop();
-    const path = `${solicitudId}/${nombreDoc.replace(/\s+/g,'_')}.${ext}`;
+    const nombreLimpio = nombreDoc
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9\s_-]/g, '')
+  .replace(/\s+/g,'_');
+const path = `${solicitudId}/${nombreLimpio}.${ext}`;
     const { error } = await supabase.storage.from('documentos').upload(path, archivo, { upsert: true });
     if (error) throw error;
     const { data } = supabase.storage.from('documentos').getPublicUrl(path);
