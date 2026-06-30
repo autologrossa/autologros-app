@@ -494,8 +494,8 @@ function PanelInformes({sols}){
             {bcra?.ok?(
               <>
                 <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
-                  <div style={{width:48,height:48,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:`${colorSit(bcra.peorSit)}20`,border:`2px solid ${colorSit(bcra.peorSit)}`}}>
-                    <span style={{fontSize:20,fontWeight:900,color:colorSit(bcra.peorSit)}}>{bcra.peorSit}</span>
+                  <div style={{width:72,height:72,borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',background:`${colorSit(bcra.peorSit)}20`,border:`3px solid ${colorSit(bcra.peorSit)}`}}>
+                    <span style={{fontSize:32,fontWeight:900,color:colorSit(bcra.peorSit)}}>{bcra.peorSit}</span>
                   </div>
                   <div>
                     <div style={{fontSize:10,color:C.text3,textTransform:'uppercase',letterSpacing:'0.06em'}}>PEOR SITUACIÓN</div>
@@ -1427,8 +1427,8 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
                 {bcra?.ok ? (
                   <>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                      <div style={{ width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${colorSit(bcra.peorSit)}20`, border: `2px solid ${colorSit(bcra.peorSit)}` }}>
-                        <span style={{ fontSize: 20, fontWeight: 900, color: colorSit(bcra.peorSit) }}>{bcra.peorSit}</span>
+                      <div style={{ width: 72, height: 72, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${colorSit(bcra.peorSit)}20`, border: `3px solid ${colorSit(bcra.peorSit)}` }}>
+                        <span style={{ fontSize: 32, fontWeight: 900, color: colorSit(bcra.peorSit) }}>{bcra.peorSit}</span>
                       </div>
                       <div>
                         <div style={{ fontSize: 10, color: C.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>PEOR SITUACIÓN</div>
