@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import FirmaCliente from './FirmaCliente';
 import LegajoDigital, { PanelLegajos } from './LegajoDigital';
@@ -743,8 +743,10 @@ function NuevaSol({user,lineas,onEnviada}){
   const [monto,setMonto]=useState('');const [f,setF]=useState({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});
   const [docs,setDocs]=useState({});const [env,setEnv]=useState(false);const [ok,setOk]=useState(false);
   const [solId]=useState(`SOL-${Date.now()}`);
+  const docsRef=useRef({});
 
   const linea=lineas.find(l=>l.id===lid);
+  docsRef.current=docs;
   const prom=s1&&s2&&s3?(parseFloat(s1)+parseFloat(s2)+parseFloat(s3))/3:0;
   const cmax=prom*0.30;
   const cuota=linea&&monto&&plazo?calcCuota(parseFloat(monto),linea.tna,linea.seguro||0,linea.comisiones||0,parseInt(plazo)):0;
@@ -753,7 +755,8 @@ function NuevaSol({user,lineas,onEnviada}){
 
   async function enviar(){
     setEnv(true);
-    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docs),docsUrls:docs,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
+    const docsSnapshot=docsRef.current;
+    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docsSnapshot),docsUrls:docsSnapshot,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
     setEnv(false);setOk(true);
   }
   const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});};
