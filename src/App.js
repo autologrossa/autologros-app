@@ -1248,29 +1248,35 @@ function PanelVisualCredito({ bcra, nosis, cuil }) {
         <div style={{ fontSize: 12, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em' }}>ANÁLISIS VISUAL — SITUACIÓN CREDITICIA</div>
         <div style={{ fontSize: 9, background: C.goldL, color: C.gold, padding: '3px 10px', borderRadius: 12, fontWeight: 700, border: `1px solid ${C.goldB}`, textTransform: 'uppercase' }}>⚠️ Modo simulación</div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 20, marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>BUREAU</div>
-          <ImagenBureau cuil={cuil} />
-        </div>
-        <div>
-          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>COMPOSICIÓN DE DEUDA</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <DonutChart data={composicion} size={110} />
+          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>COMPOSICIÓN DE DEUDA</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, background: C.bg3, borderRadius: 10, padding: 18, border: `1px solid ${C.border}` }}>
+            <DonutChart data={composicion} size={160} />
             <div style={{ flex: 1 }}>
               {composicion.map((d, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }}/>
-                  <div style={{ fontSize: 8, color: C.text2, fontWeight: 600 }}>{d.label}</div>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 11, height: 11, borderRadius: 3, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }}/>
+                  <div style={{ fontSize: 11, color: C.text2, fontWeight: 600, flex: 1 }}>{d.label}</div>
+                  <div style={{ fontSize: 11, color: C.text, fontWeight: 800 }}>{fmt(d.valor)}</div>
                 </div>
               ))}
-              <div style={{ fontSize: 10, color: C.gold, fontWeight: 900, marginTop: 6 }}>{fmt(totalDeuda)}</div>
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 11, color: C.text3, fontWeight: 700, textTransform: 'uppercase' }}>Total</span>
+                <span style={{ fontSize: 14, color: C.gold, fontWeight: 900 }}>{fmt(totalDeuda)}</span>
+              </div>
             </div>
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>EVOLUCIÓN 12 MESES</div>
-          <BarChartEvolucion data={evolucion} height={100} />
+          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>BUREAU</div>
+          <ImagenBureau cuil={cuil} />
+        </div>
+      </div>
+      <div>
+        <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>EVOLUCIÓN 12 MESES</div>
+        <div style={{ background: C.bg3, borderRadius: 10, padding: 16, border: `1px solid ${C.border}` }}>
+          <BarChartEvolucion data={evolucion} height={110} />
         </div>
       </div>
       <div style={{ marginTop: 12, fontSize: 9, color: C.text3, fontStyle: 'italic' }}>
