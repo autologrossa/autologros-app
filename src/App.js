@@ -315,7 +315,7 @@ function Admin({user,onLogout}){
   async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE COMERCIAL?'))return;await db.deleteEmbajador(id);await cargar();}
 
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
-  if(nuevoEmb) return <FormComer onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
+  if(nuevoEmb) return <FormComer onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout} comerciales={embajadores}/>;
   if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
   if(moduloE) return <ModuloE sol={moduloE} user={user} onVolver={()=>setModuloE(null)} onActualizar={cargar}/>;
   if(cuentaCte) return <CuentaCorriente credito={cuentaCte} user={user} onVolver={()=>setCuentaCte(null)} onActualizar={cargar}/>;
@@ -515,7 +515,49 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
 }
 
 // ── FORM COMERCIAL ────────────────────────────────────────────────────────────
-function FormComer({onGuardar,onCancelar,user,onLogout}){
+function FormComer({onGuardar,onCancelar,user,onLogout,comerciales}){
+  const proximoCodigo = () => {
+    if (!comerciales || comerciales.length === 0) return 'COMER001';
+    const nums = comerciales
+      .map(c => c.codigo)
+      .filter(c => c && c.startsWith('COMER'))
+      .map(c => parseInt(c.replace('COMER', '')) || 0);
+    const max = nums.length > 0 ? Math.max(...nums) : 0;
+    return `COMER${String(max + 1).padStart(3, '0')}`;
+  };
+  const [f,setF]=useState({nombre:'',apellido:'',dni:'',codigo:proximoCodigo(),zona:'',email:'',telefono:'',password:''});
+  function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'comer',activo:true});}
+  return (
+    <div style={{minHeight:'100vh',background:C.bg2}}>
+      <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
+      <div style={{padding:28,maxWidth:720,margin:'0 auto'}}>
+        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:28}}>
+          <button onClick={onCancelar} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:C.text3}}>←</button>
+          <div style={{fontSize:17,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase'}}>NUEVO COMERCIAL</div>
+        </div>
+        <Card style={{padding:32}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 20px'}}>
+            <Inp label="NOMBRE" value={f.nombre} onChange={e=>setF({...f,nombre:e.target.value})} req/>
+            <Inp label="APELLIDO" value={f.apellido} onChange={e=>setF({...f,apellido:e.target.value})} req/>
+            <Inp label="DNI" value={f.dni} onChange={e=>setF({...f,dni:e.target.value})} placeholder="12345678" req/>
+            <Inp label="CÓDIGO DE USUARIO" value={f.codigo} onChange={e=>setF({...f,codigo:e.target.value})} hint="Generado automáticamente" req/>
+            <Inp label="EMAIL" type="email" value={f.email} onChange={e=>setF({...f,email:e.target.value})} req/>
+            <Inp label="TELÉFONO" value={f.telefono} onChange={e=>setF({...f,telefono:e.target.value})} placeholder="+54 9 11 ..." req/>
+            <Inp label="ZONA / SECTOR" value={f.zona} onChange={e=>setF({...f,zona:e.target.value})} placeholder="EJ: CABA, GBA NORTE..."/>
+            <div style={{display:'flex',alignItems:'center',marginBottom:16,padding:'12px 14px',background:'rgba(200,146,42,0.08)',borderRadius:8,border:`1px solid ${C.goldB}`}}>
+              <span style={{fontSize:11,color:C.gold,fontWeight:700}}>🔑 La contraseña es gestionada exclusivamente por el Administrador.</span>
+            </div>
+            <div style={{gridColumn:'1/-1'}}><Inp label="CONTRASEÑA INICIAL" type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})} hint="Solo el Administrador puede modificarla desde el panel USUARIOS" req/></div>
+          </div>
+          <div style={{display:'flex',gap:12,justifyContent:'flex-end',marginTop:8}}>
+            <Btn onClick={onCancelar} variant="sec">CANCELAR</Btn>
+            <Btn onClick={guardar} variant="gold" disabled={!f.nombre||!f.apellido||!f.dni||!f.codigo||!f.email||!f.telefono||!f.password}>CREAR COMERCIAL</Btn>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}nction FormComer({onGuardar,onCancelar,user,onLogout}){
   const [f,setF]=useState({nombre:'',apellido:'',codigo:'',zona:'',email:'',telefono:'',password:''});
   function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'comer',activo:true});}
   return (
