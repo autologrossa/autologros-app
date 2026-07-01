@@ -35,7 +35,7 @@ export const db = {
     return data;
   },
   async getEmbajadores() {
-    const { data, error } = await supabase.from('usuarios').select('*').eq('rol', 'embajador').eq('activo', true);
+    const { data, error } = await supabase.from('usuarios').select('*').eq('rol', 'COMER').eq('activo', true);
     if (error) throw error;
     return data;
   },
