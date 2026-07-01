@@ -193,13 +193,13 @@ function Admin({user,onLogout}){
   const [tab,setTab]=useState('lineas');
   const [lineas,setLineas]=useState([]);const [loading,setLoading]=useState(true);
   const [editando,setEditando]=useState(null);const [nueva,setNueva]=useState(false);
-  const [embajadores,setEmbajadores]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);const [sols,setSols]=useState([]);const [legajoAdmin,setLegajoAdmin]=useState(null);const [moduloE,setModuloE]=useState(null);const [cuentaCte,setCuentaCte]=useState(null);
+  const [comerciales,setComerciales]=useState([]);const [nuevoEmb,setNuevoEmb]=useState(false);const [sols,setSols]=useState([]);const [legajoAdmin,setLegajoAdmin]=useState(null);const [moduloE,setModuloE]=useState(null);const [cuentaCte,setCuentaCte]=useState(null);
 
   useEffect(()=>{cargar();},[]);
   async function cargar(){
     setLoading(true);
     setLineas(await db.getLineas()||[]);
-    setEmbajadores(await db.getEmbajadores()||[]);
+    setComerciales(await db.getComerciales()||[]);
     setSols(await db.getSolicitudes()||[]);
     setLoading(false);
   }
@@ -207,10 +207,10 @@ function Admin({user,onLogout}){
   async function toggleLinea(linea){await db.saveLinea({...linea,activa:!linea.activa});await cargar();}
   async function eliminarLinea(id){if(!window.confirm('¿ELIMINAR ESTA LÍNEA?'))return;await db.deleteLinea(id);await cargar();}
   async function guardarEmb(e){await db.saveEmbajador(e);await cargar();setNuevoEmb(false);}
-  async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE EMBAJADOR?'))return;await db.deleteEmbajador(id);await cargar();}
+  async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE COMERCIAL?'))return;await db.deleteComercial(id);await cargar();}
 
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
-  if(nuevoEmb) return <FormEmbajador onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
+  if(nuevoEmb) return <FormComercial onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
   if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
   if(moduloE) return <ModuloE sol={moduloE} user={user} onVolver={()=>setModuloE(null)} onActualizar={cargar}/>;
   if(cuentaCte) return <CuentaCorriente credito={cuentaCte} user={user} onVolver={()=>setCuentaCte(null)} onActualizar={cargar}/>;
@@ -218,7 +218,7 @@ function Admin({user,onLogout}){
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['embajadores','EMBAJADORES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES']]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['comerciales','COMERCIALES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:960,margin:'0 auto'}}>
         {tab==='lineas'&&(
           <>
@@ -277,16 +277,16 @@ function Admin({user,onLogout}){
         {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin} onDesembolsar={setModuloE}/>}
         {tab==='cartera'&&<ModuloF user={user} onVerCuenta={setCuentaCte}/>}
         {tab==='reportes'&&<ModuloH user={user}/>}
-        {tab==='embajadores'&&(
+        {tab==='comerciales'&&(
           <>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
               <div>
-                <div style={{fontSize:18,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase'}}>EMBAJADORES</div>
-                <div style={{fontSize:11,color:C.text3,marginTop:4,fontWeight:400}}>{embajadores.length} activos</div>
+                <div style={{fontSize:18,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase'}}>COMERCIALES</div>
+                <div style={{fontSize:11,color:C.text3,marginTop:4,fontWeight:400}}>{comerciales.length} activos</div>
               </div>
-              <Btn onClick={()=>setNuevoEmb(true)} variant="gold">+ NUEVO EMBAJADOR</Btn>
+              <Btn onClick={()=>setNuevoEmb(true)} variant="gold">+ NUEVO COMERCIAL</Btn>
             </div>
-            {embajadores.map(e=>(
+            {comerciales.map(e=>(
               <Card key={e.codigo} style={{padding:18,marginBottom:10,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <div>
                   <div style={{fontSize:14,fontWeight:900,color:C.text,letterSpacing:'0.04em',textTransform:'uppercase'}}>{e.nombre}</div>
@@ -349,7 +349,7 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
             <Inp label="PLAZOS (MESES, SEPARADOS POR COMA)" value={f.plazosStr} onChange={e=>setF({...f,plazosStr:e.target.value})} placeholder="6, 12, 18, 24, 36" req/>
             <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16,padding:'12px 14px',background:'rgba(255,255,255,0.04)',borderRadius:8,border:`1px solid ${C.border}`}}>
               <input type="checkbox" checked={f.activa} onChange={e=>setF({...f,activa:e.target.checked})} style={{width:18,height:18,cursor:'pointer'}}/>
-              <span style={{fontSize:11,fontWeight:700,color:f.activa?C.green:C.text3,letterSpacing:'0.06em',textTransform:'uppercase'}}>{f.activa?'ACTIVA — VISIBLE PARA EMBAJADORES':'INACTIVA'}</span>
+              <span style={{fontSize:11,fontWeight:700,color:f.activa?C.green:C.text3,letterSpacing:'0.06em',textTransform:'uppercase'}}>{f.activa?'ACTIVA — VISIBLE PARA COMERCIALES':'INACTIVA'}</span>
             </div>
           </div>
 
@@ -418,17 +418,17 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
   );
 }
 
-// ── FORM EMBAJADOR ────────────────────────────────────────────────────────────
-function FormEmbajador({onGuardar,onCancelar,user,onLogout}){
+// ── FORM COMERCIAL ────────────────────────────────────────────────────────────
+function FormComer({onGuardar,onCancelar,user,onLogout}){
   const [f,setF]=useState({nombre:'',apellido:'',codigo:'',zona:'',email:'',telefono:'',password:''});
-  function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'embajador',activo:true});}
+  function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'comer',activo:true});}
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
       <div style={{padding:28,maxWidth:720,margin:'0 auto'}}>
         <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:28}}>
           <button onClick={onCancelar} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:C.text3}}>←</button>
-          <div style={{fontSize:17,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase'}}>NUEVO EMBAJADOR</div>
+          <div style={{fontSize:17,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase'}}>NUEVO COMERCIAL</div>
         </div>
         <Card style={{padding:32}}>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 20px'}}>
@@ -438,11 +438,11 @@ function FormEmbajador({onGuardar,onCancelar,user,onLogout}){
             <Inp label="ZONA / SECTOR" value={f.zona} onChange={e=>setF({...f,zona:e.target.value})} placeholder="EJ: CABA, GBA NORTE..."/>
             <Inp label="EMAIL" type="email" value={f.email} onChange={e=>setF({...f,email:e.target.value})}/>
             <Inp label="TELÉFONO" value={f.telefono} onChange={e=>setF({...f,telefono:e.target.value})}/>
-            <div style={{gridColumn:'1/-1'}}><Inp label="CONTRASEÑA INICIAL" type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})} hint="El Embajador deberá cambiarla en su primer ingreso" req/></div>
+            <div style={{gridColumn:'1/-1'}}><Inp label="CONTRASEÑA INICIAL" type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})} hint="El Comercial deberá cambiarla en su primer ingreso" req/></div>
           </div>
           <div style={{display:'flex',gap:12,justifyContent:'flex-end',marginTop:8}}>
             <Btn onClick={onCancelar} variant="sec">CANCELAR</Btn>
-            <Btn onClick={guardar} variant="gold" disabled={!f.nombre||!f.apellido||!f.codigo||!f.password}>CREAR EMBAJADOR</Btn>
+            <Btn onClick={guardar} variant="gold" disabled={!f.nombre||!f.apellido||!f.codigo||!f.password}>CREAR COMERCIAL</Btn>
           </div>
         </Card>
       </div>
@@ -655,7 +655,7 @@ function Analista({user,onLogout}){
                 <table style={{width:'100%',borderCollapse:'collapse'}}>
                   <thead>
                     <tr>
-                      {['CLIENTE','LÍNEA / MONTO','CUOTA','EMBAJADOR','FECHA','ESTADO','OBSERVACIÓN',''].map(h=>(
+                      {['CLIENTE','LÍNEA / MONTO','CUOTA','COMERCIAL','FECHA','ESTADO','OBSERVACIÓN',''].map(h=>(
                         <th key={h} style={{background:C.bg3,color:C.text2,fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.08em',padding:'10px 14px',textAlign:'left',borderBottom:`1px solid ${C.border}`}}>{h}</th>
                       ))}
                     </tr>
@@ -673,7 +673,7 @@ function Analista({user,onLogout}){
                           <div style={{fontSize:11,color:C.text3,fontWeight:400}}>{fmt(s.monto)} · {s.plazo}M</div>
                         </td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,fontWeight:900,color:s.estado==='rechazado'?C.red:s.estado==='aprobado'?C.green:C.gold,fontSize:13}}>{fmt(s.cuota)}</td>
-                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.emb_nombre}</td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.comer_nombre}</td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.fecha}</td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:s.estado==='rechazado'?C.red:C.text3,fontSize:11,fontWeight:400,maxWidth:200}}>{s.obs||'—'}</td>
@@ -704,15 +704,15 @@ function Analista({user,onLogout}){
   );
 }
 
-// ── EMBAJADOR ─────────────────────────────────────────────────────────────────
-function Embajador({user,onLogout}){
+// ── COMERCIAL ─────────────────────────────────────────────────────────────────
+function Comer({user,onLogout}){
   const [tab,setTab]=useState('nueva');const [lineas,setLineas]=useState([]);const [sols,setSols]=useState([]);const [detalle,setDetalle]=useState(null);
   useEffect(()=>{init();},[]);
   async function init(){const l=await db.getLineas();setLineas((l||[]).filter(x=>x.activa));setSols((await db.getSolicitudes(user.codigo))||[]);}
   async function cargarSols(){setSols((await db.getSolicitudes(user.codigo))||[]);}
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
-      <Hdr title="PORTAL EMBAJADOR" user={user} onLogout={onLogout}/>
+      <Hdr title="PORTAL COMERCIAL" user={user} onLogout={onLogout}/>
       <Tabs tabs={[['nueva','NUEVA SOLICITUD'],['mis','MIS SOLICITUDES']]} active={tab} onChange={k=>{setTab(k);if(k==='mis')cargarSols();}}/>
       <div style={{padding:28,maxWidth:860,margin:'0 auto'}}>
         {tab==='nueva'&&<NuevaSol user={user} lineas={lineas} onEnviada={()=>{cargarSols();setTab('mis');}}/>}
@@ -758,7 +758,7 @@ function NuevaSol({user,lineas,onEnviada}){
   async function enviar(){
     setEnv(true);
     const docsSnapshot=docsRef.current;
-    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docsSnapshot),docsUrls:docsSnapshot,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
+    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),comerCod:user.codigo,comerNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docsSnapshot),docsUrls:docsSnapshot,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
     setEnv(false);setOk(true);
   }
   const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});};
@@ -966,7 +966,7 @@ function Modal({sol:s,onClose,onResolver,readOnly}){
     <div style={{position:'fixed',inset:0,background:'rgba(3,15,30,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
       <div style={{background:C.bg4,borderRadius:14,width:'100%',maxWidth:620,maxHeight:'90vh',overflowY:'auto',border:`1px solid ${C.border}`}}>
         <div style={{padding:'20px 28px',borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div><div style={{fontWeight:900,fontSize:16,color:C.text,letterSpacing:'0.04em',textTransform:'uppercase'}}>{s.id}</div><div style={{fontSize:11,color:C.text3,fontWeight:400,marginTop:2}}>{s.fecha} · {s.emb_nombre}</div></div>
+          <div><div style={{fontWeight:900,fontSize:16,color:C.text,letterSpacing:'0.04em',textTransform:'uppercase'}}>{s.id}</div><div style={{fontSize:11,color:C.text3,fontWeight:400,marginTop:2}}>{s.fecha} · {s.comer_nombre}</div></div>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:C.text3}}>✕</button>
         </div>
         <div style={{padding:28}}>
@@ -1024,7 +1024,7 @@ function AppPrincipal(){
   if(!user) return <Login onLogin={setUser}/>;
   if(user.rol==='admin') return <Admin user={user} onLogout={()=>setUser(null)}/>;
   if(user.rol==='analista') return <Analista user={user} onLogout={()=>setUser(null)}/>;
-  return <Embajador user={user} onLogout={()=>setUser(null)}/>;
+  return <Comer user={user} onLogout={()=>setUser(null)}/>;
 }
 
 export default function App(){
@@ -1517,7 +1517,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
 
         <Card style={{ padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-            {[['LÍNEA', sol.linea_nombre],['MONTO', fmt(sol.monto)],['PLAZO', `${sol.plazo} MESES`],['CUOTA EST.', fmt(sol.cuota)],['SUELDO PROM.', fmt(prom)],['30% SUELDO', fmt(prom30)],['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],['EMBAJADOR', sol.emb_nombre]].map(([l, v]) => (
+            {[['LÍNEA', sol.linea_nombre],['MONTO', fmt(sol.monto)],['PLAZO', `${sol.plazo} MESES`],['CUOTA EST.', fmt(sol.cuota)],['SUELDO PROM.', fmt(prom)],['30% SUELDO', fmt(prom30)],['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],['COMERCIAL', sol.comer_nombre]].map(([l, v]) => (
               <div key={l} style={{ background: C.bg3, borderRadius: 8, padding: '10px 12px', border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{l}</div>
                 <div style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{v}</div>
