@@ -315,7 +315,7 @@ function Admin({user,onLogout}){
   async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE COMERCIAL?'))return;await db.deleteEmbajador(id);await cargar();}
 
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
-  if(nuevoEmb) return <FormComercial onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
+  if(nuevoEmb) return <FormComer onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
   if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
   if(moduloE) return <ModuloE sol={moduloE} user={user} onVolver={()=>setModuloE(null)} onActualizar={cargar}/>;
   if(cuentaCte) return <CuentaCorriente credito={cuentaCte} user={user} onVolver={()=>setCuentaCte(null)} onActualizar={cargar}/>;
@@ -404,17 +404,7 @@ function Admin({user,onLogout}){
                 </div>
               </Card>
             ))}
-            <Card style={{padding:16,marginTop:8}}>
-              <div style={{fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:12}}>ROLES ÚNICOS DEL SISTEMA</div>
-              <div style={{display:'flex',gap:10}}>
-                {[['ANALISTA','Rol único · No replicable'],['ADMINISTRADOR','Rol único · No replicable']].map(([r,d])=>(
-                  <div key={r} style={{flex:1,background:C.bg3,borderRadius:8,padding:14,border:`1px solid ${C.border}`}}>
-                    <div style={{fontSize:12,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.06em'}}>{r}</div>
-                    <div style={{fontSize:10,color:C.text3,marginTop:4,fontWeight:400}}>{d}</div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+
           </>
         )}
       </div>
