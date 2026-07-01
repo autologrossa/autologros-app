@@ -188,6 +188,111 @@ function Login({onLogin}){
   );
 }
 
+
+// ── PANEL GESTIÓN DE USUARIOS ─────────────────────────────────────────────────
+function PanelUsuarios({ usuarios, user, onActualizar }) {
+  const [editando, setEditando] = useState(null);
+  const [nuevaPass, setNuevaPass] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [ok, setOk] = useState(false);
+
+  // También incluir el analista
+  const todos = [...(usuarios || [])];
+
+  async function cambiarPassword(codigo) {
+    if (!nuevaPass || nuevaPass.length < 4) {
+      alert('La contraseña debe tener al menos 4 caracteres.');
+      return;
+    }
+    setGuardando(true);
+    try {
+      await db.supabase.from('usuarios').update({ password: nuevaPass }).eq('codigo', codigo);
+      setOk(true);
+      setTimeout(() => { setOk(false); setEditando(null); setNuevaPass(''); }, 2000);
+    } catch (e) {
+      alert('Error al cambiar la contraseña.');
+    }
+    setGuardando(false);
+  }
+
+  return (
+    <div>
+      <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>GESTIÓN DE USUARIOS</div>
+      <div style={{ fontSize: 11, color: C.text3, marginBottom: 20, fontWeight: 400 }}>
+        Desde aquí podés cambiar la contraseña de cualquier usuario del sistema.
+      </div>
+
+      {/* Usuario ANALISTA */}
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>ROLES ÚNICOS</div>
+        {['ANALISTA', 'ADMIN'].map(cod => (
+          <Card key={cod} style={{ padding: 18, marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 900, color: C.text, textTransform: 'uppercase' }}>{cod}</div>
+                <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>Rol único · No replicable</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {editando === cod ? (
+                  <>
+                    <input
+                      type="password"
+                      value={nuevaPass}
+                      onChange={e => setNuevaPass(e.target.value)}
+                      placeholder="Nueva contraseña"
+                      style={{ padding: '8px 12px', borderRadius: 8, border: `1.5px solid ${C.gold}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 12, fontFamily: 'inherit', width: 180 }}
+                    />
+                    <Btn onClick={() => cambiarPassword(cod)} variant="gold" disabled={guardando} style={{ padding: '8px 14px', fontSize: 11 }}>
+                      {ok ? '✓ GUARDADO' : guardando ? '...' : 'GUARDAR'}
+                    </Btn>
+                    <Btn onClick={() => { setEditando(null); setNuevaPass(''); }} variant="sec" style={{ padding: '8px 14px', fontSize: 11 }}>CANCELAR</Btn>
+                  </>
+                ) : (
+                  <Btn onClick={() => { setEditando(cod); setNuevaPass(''); }} variant="ghost" style={{ padding: '7px 16px', fontSize: 11 }}>🔑 CAMBIAR CONTRASEÑA</Btn>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* COMERCIALES */}
+      <div style={{ marginTop: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>COMERCIALES</div>
+        {todos.map(u => (
+          <Card key={u.codigo} style={{ padding: 18, marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 900, color: C.text, textTransform: 'uppercase' }}>{u.nombre}</div>
+                <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>Código: <strong style={{ color: C.gold }}>{u.codigo}</strong>{u.zona ? ` · Zona: ${u.zona}` : ''}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {editando === u.codigo ? (
+                  <>
+                    <input
+                      type="password"
+                      value={nuevaPass}
+                      onChange={e => setNuevaPass(e.target.value)}
+                      placeholder="Nueva contraseña"
+                      style={{ padding: '8px 12px', borderRadius: 8, border: `1.5px solid ${C.gold}`, background: 'rgba(255,255,255,0.05)', color: C.text, fontSize: 12, fontFamily: 'inherit', width: 180 }}
+                    />
+                    <Btn onClick={() => cambiarPassword(u.codigo)} variant="gold" disabled={guardando} style={{ padding: '8px 14px', fontSize: 11 }}>
+                      {ok ? '✓ GUARDADO' : guardando ? '...' : 'GUARDAR'}
+                    </Btn>
+                    <Btn onClick={() => { setEditando(null); setNuevaPass(''); }} variant="sec" style={{ padding: '8px 14px', fontSize: 11 }}>CANCELAR</Btn>
+                  </>
+                ) : (
+                  <Btn onClick={() => { setEditando(u.codigo); setNuevaPass(''); }} variant="ghost" style={{ padding: '7px 16px', fontSize: 11 }}>🔑 CAMBIAR CONTRASEÑA</Btn>
+                )}
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── ADMIN ─────────────────────────────────────────────────────────────────────
 function Admin({user,onLogout}){
   const [tab,setTab]=useState('lineas');
@@ -218,7 +323,7 @@ function Admin({user,onLogout}){
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['comerciales','COMERCIALES'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES']]} active={tab} onChange={setTab}/>
+      <Tabs tabs={[['lineas','LÍNEAS DE CRÉDITO'],['comerciales','COMERCIALES'],['usuarios','USUARIOS'],['legajos','LEGAJOS'],['cartera','CARTERA'],['reportes','REPORTES']]} active={tab} onChange={setTab}/>
       <div style={{padding:28,maxWidth:960,margin:'0 auto'}}>
         {tab==='lineas'&&(
           <>
@@ -274,6 +379,7 @@ function Admin({user,onLogout}){
             })}
           </>
         )}
+        {tab==='usuarios'&&<PanelUsuarios usuarios={embajadores} user={user} onActualizar={cargar}/>}
         {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin} onDesembolsar={setModuloE}/>}
         {tab==='cartera'&&<ModuloF user={user} onVerCuenta={setCuentaCte}/>}
         {tab==='reportes'&&<ModuloH user={user}/>}
