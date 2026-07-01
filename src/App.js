@@ -304,7 +304,7 @@ function Admin({user,onLogout}){
   async function cargar(){
     setLoading(true);
     setLineas(await db.getLineas()||[]);
-    setComerciales(await db.getComerciales()||[]);
+    setComerciales(await db.getEmbajadores()||[]);
     setSols(await db.getSolicitudes()||[]);
     setLoading(false);
   }
@@ -312,7 +312,7 @@ function Admin({user,onLogout}){
   async function toggleLinea(linea){await db.saveLinea({...linea,activa:!linea.activa});await cargar();}
   async function eliminarLinea(id){if(!window.confirm('¿ELIMINAR ESTA LÍNEA?'))return;await db.deleteLinea(id);await cargar();}
   async function guardarEmb(e){await db.saveEmbajador(e);await cargar();setNuevoEmb(false);}
-  async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE COMERCIAL?'))return;await db.deleteComercial(id);await cargar();}
+  async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE COMERCIAL?'))return;await db.deleteEmbajador(id);await cargar();}
 
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
   if(nuevoEmb) return <FormComercial onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout}/>;
@@ -779,7 +779,7 @@ function Analista({user,onLogout}){
                           <div style={{fontSize:11,color:C.text3,fontWeight:400}}>{fmt(s.monto)} · {s.plazo}M</div>
                         </td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,fontWeight:900,color:s.estado==='rechazado'?C.red:s.estado==='aprobado'?C.green:C.gold,fontSize:13}}>{fmt(s.cuota)}</td>
-                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.comer_nombre}</td>
+                        <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.emb_nombre}</td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:C.text2,fontWeight:400,fontSize:11}}>{s.fecha}</td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></td>
                         <td style={{padding:'12px 14px',borderBottom:`1px solid ${C.border}`,color:s.estado==='rechazado'?C.red:C.text3,fontSize:11,fontWeight:400,maxWidth:200}}>{s.obs||'—'}</td>
@@ -864,7 +864,7 @@ function NuevaSol({user,lineas,onEnviada}){
   async function enviar(){
     setEnv(true);
     const docsSnapshot=docsRef.current;
-    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),comerCod:user.codigo,comerNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docsSnapshot),docsUrls:docsSnapshot,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
+    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docsSnapshot),docsUrls:docsSnapshot,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
     setEnv(false);setOk(true);
   }
   const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});};
@@ -1072,7 +1072,7 @@ function Modal({sol:s,onClose,onResolver,readOnly}){
     <div style={{position:'fixed',inset:0,background:'rgba(3,15,30,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
       <div style={{background:C.bg4,borderRadius:14,width:'100%',maxWidth:620,maxHeight:'90vh',overflowY:'auto',border:`1px solid ${C.border}`}}>
         <div style={{padding:'20px 28px',borderBottom:`1px solid ${C.border}`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div><div style={{fontWeight:900,fontSize:16,color:C.text,letterSpacing:'0.04em',textTransform:'uppercase'}}>{s.id}</div><div style={{fontSize:11,color:C.text3,fontWeight:400,marginTop:2}}>{s.fecha} · {s.comer_nombre}</div></div>
+          <div><div style={{fontWeight:900,fontSize:16,color:C.text,letterSpacing:'0.04em',textTransform:'uppercase'}}>{s.id}</div><div style={{fontSize:11,color:C.text3,fontWeight:400,marginTop:2}}>{s.fecha} · {s.emb_nombre}</div></div>
           <button onClick={onClose} style={{background:'none',border:'none',fontSize:22,cursor:'pointer',color:C.text3}}>✕</button>
         </div>
         <div style={{padding:28}}>
@@ -1623,7 +1623,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
 
         <Card style={{ padding: 20, marginBottom: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-            {[['LÍNEA', sol.linea_nombre],['MONTO', fmt(sol.monto)],['PLAZO', `${sol.plazo} MESES`],['CUOTA EST.', fmt(sol.cuota)],['SUELDO PROM.', fmt(prom)],['30% SUELDO', fmt(prom30)],['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],['COMERCIAL', sol.comer_nombre]].map(([l, v]) => (
+            {[['LÍNEA', sol.linea_nombre],['MONTO', fmt(sol.monto)],['PLAZO', `${sol.plazo} MESES`],['CUOTA EST.', fmt(sol.cuota)],['SUELDO PROM.', fmt(prom)],['30% SUELDO', fmt(prom30)],['CUOTA/SUELDO', `${((sol.cuota / prom) * 100).toFixed(1)}%`],['COMERCIAL', sol.emb_nombre]].map(([l, v]) => (
               <div key={l} style={{ background: C.bg3, borderRadius: 8, padding: '10px 12px', border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{l}</div>
                 <div style={{ fontSize: 13, fontWeight: 900, color: C.text }}>{v}</div>
