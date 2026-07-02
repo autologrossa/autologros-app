@@ -859,6 +859,9 @@ function NuevaSol({user,lineas,onEnviada}){
   const [monto,setMonto]=useState('');const [f,setF]=useState({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});
   const [docs,setDocs]=useState({});const [env,setEnv]=useState(false);const [ok,setOk]=useState(false);
   const [solIdGenerado,setSolIdGenerado]=useState('');
+  // tempId se usa como carpeta en Storage durante la carga del formulario
+  // Estructura: documentos/DNI/tempId/archivo → luego el legajo lo lee por docs_urls
+  const [tempId] = useState(()=>String(Date.now()));
   const docsRef=useRef({});
 
   const linea=lineas.find(l=>l.id===lid);
@@ -999,10 +1002,10 @@ function NuevaSol({user,lineas,onEnviada}){
                 const file=e.target.files[0];
                 if(!file)return;
                 const docNombre=d;
-                const dni=f.dni||solId;
+                const dni=f.dni||tempId;
                 setDocs(prev=>({...prev,[docNombre]:'Subiendo...'}));
                 try{
-                  const url=await db.uploadDocumento(dni,docNombre,file);
+                  const url=await db.uploadDocumento(dni,tempId,docNombre,file);
                   setDocs(prev=>({...prev,[docNombre]:url}));
                 }catch(err){
                   console.error('Upload error:',err);
@@ -1032,10 +1035,10 @@ function NuevaSol({user,lineas,onEnviada}){
                   const file=e.target.files[0];
                   if(!file)return;
                   const docNombre=d;
-                  const dni=f.dni||solId;
+                  const dni=f.dni||tempId;
                   setDocs(prev=>({...prev,[docNombre]:'Subiendo...'}));
                   try{
-                    const url=await db.uploadDocumento(dni,docNombre,file);
+                    const url=await db.uploadDocumento(dni,tempId,docNombre,file);
                     setDocs(prev=>({...prev,[docNombre]:url}));
                   }catch(err){
                     console.error('Upload error:',err);
