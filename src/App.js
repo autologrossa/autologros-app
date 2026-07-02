@@ -53,12 +53,12 @@ function Inp({label,type='text',value,onChange,placeholder,req,step,hint}){
         {label}{req&&<span style={{color:C.gold,marginLeft:3}}>*</span>}
       </label>
       <input type={type} value={value} onChange={onChange} placeholder={placeholder} step={step}
-        autoComplete="off"
+        autoComplete="new-password" readOnly
+        onFocus={e=>{e.target.removeAttribute('readOnly');e.target.style.borderColor=C.gold}}
+        onBlur={e=>e.target.style.borderColor=C.border2}
         style={{width:'100%',padding:'10px 14px',border:`1.5px solid ${C.border2}`,borderRadius:8,
           fontSize:13,color:C.text,background:'rgba(255,255,255,0.05)',outline:'none',
           fontFamily:'inherit',fontWeight:700,letterSpacing:'0.03em',boxSizing:'border-box'}}
-        onFocus={e=>e.target.style.borderColor=C.gold}
-        onBlur={e=>e.target.style.borderColor=C.border2}
       />
       {hint&&<div style={{fontSize:10,color:C.text3,marginTop:4,fontWeight:400}}>{hint}</div>}
     </div>
@@ -553,10 +553,7 @@ function FormComer({onGuardar,onCancelar,user,onLogout,comerciales}){
             <Inp label="EMAIL" type="email" value={f.email} onChange={e=>setF({...f,email:e.target.value})} req/>
             <Inp label="TELÉFONO" value={f.telefono} onChange={e=>setF({...f,telefono:e.target.value})} placeholder="+54 9 11 ..." req/>
             <Inp label="ZONA / SECTOR" value={f.zona} onChange={e=>setF({...f,zona:e.target.value})} placeholder="EJ: CABA, GBA NORTE..."/>
-            <div style={{display:'flex',alignItems:'center',marginBottom:16,padding:'12px 14px',background:'rgba(200,146,42,0.08)',borderRadius:8,border:`1px solid ${C.goldB}`}}>
-              <span style={{fontSize:11,color:C.gold,fontWeight:700}}>🔑 La contraseña es gestionada exclusivamente por el Administrador.</span>
-            </div>
-            <div style={{gridColumn:'1/-1'}}><Inp label="CONTRASEÑA INICIAL" type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})} hint="Solo el Administrador puede modificarla desde el panel USUARIOS" req/></div>
+            <div style={{gridColumn:'1/-1'}}><Inp label="CONTRASEÑA INICIAL" type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})} req/></div>
           </div>
           <div style={{display:'flex',gap:12,justifyContent:'flex-end',marginTop:8}}>
             <Btn onClick={onCancelar} variant="sec">CANCELAR</Btn>
