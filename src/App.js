@@ -412,13 +412,13 @@ function Admin({user,onLogout}){
 function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
   const nuevo=!linea;
   const [f,setF]=useState(linea?{...linea,plazosStr:(linea.plazos||[]).join(', '),docsReqStr:(linea.docsReq||[]).join('\n'),docsOpcStr:(linea.docsOpc||[]).join('\n')}
-    :{id:`linea-${Date.now()}`,nombre:'',descripcion:'',activa:true,montoMin:'',montoMax:'',tna:'',seguro:'',comisiones:'',gastos:'',plazosStr:'',docsReqStr:'',docsOpcStr:''});
+    :{id:`linea-${Date.now()}`,nombre:'',descripcion:'',activa:true,tipo:'personal',montoMin:'',montoMax:'',tna:'',seguro:'',comisiones:'',gastos:'',plazosStr:'',docsReqStr:'',docsOpcStr:''});
 
   const tea=f.tna?calcTEA(parseFloat(f.tna)):null;
   const cft=(f.tna&&f.seguro!==''&&f.comisiones!==''&&f.gastos!=='')?calcCFT(parseFloat(f.tna),parseFloat(f.seguro||0),parseFloat(f.comisiones||0),parseFloat(f.gastos||0)):null;
   const gastoEjemplo=f.gastos?1000000*(parseFloat(f.gastos)/100)*IVA:0;
 
-  function toLinea(){return{...f,montoMin:parseFloat(f.montoMin),montoMax:parseFloat(f.montoMax),tna:parseFloat(f.tna),
+  function toLinea(){return{...f,tipo:f.tipo||'personal',montoMin:parseFloat(f.montoMin),montoMax:parseFloat(f.montoMax),tna:parseFloat(f.tna),
     seguro:parseFloat(f.seguro||0),comisiones:parseFloat(f.comisiones||0),gastos:parseFloat(f.gastos||0),
     plazos:f.plazosStr.split(',').map(x=>parseInt(x.trim())).filter(Boolean),
     docsReq:f.docsReqStr.split('\n').map(x=>x.trim()).filter(Boolean),
@@ -436,6 +436,18 @@ function FormLinea({linea,onGuardar,onCancelar,user,onLogout}){
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 20px'}}>
             <div style={{gridColumn:'1/-1'}}><Inp label="NOMBRE DE LA LÍNEA" value={f.nombre} onChange={e=>setF({...f,nombre:e.target.value})} req/></div>
             <div style={{gridColumn:'1/-1'}}><Inp label="DESCRIPCIÓN" value={f.descripcion} onChange={e=>setF({...f,descripcion:e.target.value})}/></div>
+            <div style={{gridColumn:'1/-1',marginBottom:16}}>
+              <label style={{display:'block',fontSize:10,fontWeight:700,color:C.text2,textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:7}}>TIPO DE PRÉSTAMO <span style={{color:C.gold,marginLeft:3}}>*</span></label>
+              <div style={{display:'flex',gap:10}}>
+                {[['personal','PER — PERSONAL'],['prendario','PRE — PRENDARIO']].map(([val,label])=>(
+                  <button key={val} type="button" onClick={()=>setF({...f,tipo:val})}
+                    style={{flex:1,padding:'10px 14px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase',
+                      border:`1.5px solid ${f.tipo===val?C.gold:C.border}`,background:f.tipo===val?C.goldL:'rgba(255,255,255,0.03)',color:f.tipo===val?C.gold:C.text2}}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Inp label="MONTO MÍNIMO ($)" type="number" value={f.montoMin} onChange={e=>setF({...f,montoMin:e.target.value})} req/>
             <Inp label="MONTO MÁXIMO ($)" type="number" value={f.montoMax} onChange={e=>setF({...f,montoMax:e.target.value})} req/>
             <Inp label="PLAZOS (MESES, SEPARADOS POR COMA)" value={f.plazosStr} onChange={e=>setF({...f,plazosStr:e.target.value})} placeholder="6, 12, 18, 24, 36" req/>
@@ -846,7 +858,7 @@ function NuevaSol({user,lineas,onEnviada}){
   const [s1,setS1]=useState('');const [s2,setS2]=useState('');const [s3,setS3]=useState('');
   const [monto,setMonto]=useState('');const [f,setF]=useState({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});
   const [docs,setDocs]=useState({});const [env,setEnv]=useState(false);const [ok,setOk]=useState(false);
-  const [solId]=useState(`SOL-${Date.now()}`);
+  const [solIdGenerado,setSolIdGenerado]=useState('');
   const docsRef=useRef({});
 
   const linea=lineas.find(l=>l.id===lid);
@@ -857,15 +869,31 @@ function NuevaSol({user,lineas,onEnviada}){
   const desembolso=linea&&monto?calcDesembolso(parseFloat(monto),linea.gastos||0):0;
   const capOK=cmax>0&&cuota>0&&cuota<=cmax;
 
+  async function generarSolId(){
+    // Obtener y actualizar correlativo del comercial en Supabase
+    const { data: usuarioData } = await db.supabase
+      .from('usuarios').select('ultimo_prestamo').eq('codigo', user.codigo).single();
+    const nuevoCorrelativo = ((usuarioData?.ultimo_prestamo) || 0) + 1;
+    await db.supabase.from('usuarios').update({ ultimo_prestamo: nuevoCorrelativo }).eq('codigo', user.codigo);
+    // Armar ID: TIPO-COMER+AÑO-CORRELATIVO
+    const tipo = linea?.tipo === 'prendario' ? 'PRE' : 'PER';
+    const codigoNums = user.codigo.replace('COMER','').padStart(3,'0');
+    const anio = String(new Date().getFullYear()).slice(-2);
+    const correlativo = String(nuevoCorrelativo).padStart(4,'0');
+    return `${tipo}-${codigoNums}${anio}-${correlativo}`;
+  }
+
   async function enviar(){
     setEnv(true);
     const docsSnapshot=docsRef.current;
-    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docsSnapshot),docsUrls:docsSnapshot,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
+    const solId = await generarSolId();
+    setSolIdGenerado(solId);
+    await db.saveSolicitud({id:solId,fecha:new Date().toLocaleDateString('es-AR'),embCod:user.codigo,embNombre:user.nombre,lineaId:lid,lineaNombre:linea.nombre,lineaTipo:linea?.tipo||'personal',plazo:parseInt(plazo),monto:parseFloat(monto),tna:linea.tna,cuota:Math.round(cuota),promSueldo:Math.round(prom),cli:{...f},docs:Object.keys(docsSnapshot),docsUrls:docsSnapshot,estado:'pendiente',estadoTexto:'PENDIENTE DE ANÁLISIS',tokenFirma:solId,fechaTokenGenerado:new Date().toISOString()});
     setEnv(false);setOk(true);
   }
-  const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});};
+  const reset=()=>{setOk(false);setPaso(1);setLid('');setPlazo('');setS1('');setS2('');setS3('');setMonto('');setF({nombre:'',apellido:'',dni:'',cuil:'',email:'',tel:'',emp:'',antig:'',cbu:''});setDocs({});setSolIdGenerado('');};
 
-  if(ok) return <Card style={{padding:60,textAlign:'center'}}><div style={{fontSize:52,marginBottom:16}}>✅</div><div style={{fontSize:20,fontWeight:900,color:C.green,marginBottom:8,letterSpacing:'0.06em',textTransform:'uppercase'}}>SOLICITUD ENVIADA</div><div style={{color:C.text2,marginBottom:28,fontWeight:400}}>Enviada al equipo de análisis.</div><Btn onClick={reset} variant="ghost">CARGAR OTRA SOLICITUD</Btn></Card>;
+  if(ok) return <Card style={{padding:60,textAlign:'center'}}><div style={{fontSize:52,marginBottom:16}}>✅</div><div style={{fontSize:20,fontWeight:900,color:C.green,marginBottom:8,letterSpacing:'0.06em',textTransform:'uppercase'}}>SOLICITUD ENVIADA</div><div style={{background:C.goldL,border:`1px solid ${C.goldB}`,borderRadius:8,padding:'10px 20px',display:'inline-block',marginBottom:12}}><span style={{fontSize:16,fontWeight:900,color:C.gold,letterSpacing:'0.1em'}}>{solIdGenerado}</span></div><div style={{color:C.text2,marginBottom:28,fontWeight:400}}>Enviada al equipo de análisis.</div><Btn onClick={reset} variant="ghost">CARGAR OTRA SOLICITUD</Btn></Card>;
 
   const steps=['LÍNEA Y SIMULACIÓN','DATOS DEL CLIENTE','DOCUMENTACIÓN','CONFIRMAR'];
   return (
