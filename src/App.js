@@ -535,6 +535,17 @@ function FormComer({onGuardar,onCancelar,user,onLogout,comerciales}){
     return `COMER${String(max + 1).padStart(3, '0')}`;
   };
   const [f,setF]=useState({nombre:'',apellido:'',dni:'',codigo:proximoCodigo(),zona:'',email:'',telefono:'',password:'',activo:true});
+  
+  // Chrome ignora autoComplete="off" — este efecto limpia los campos que Chrome autocompletó
+  useEffect(()=>{
+    const t=setTimeout(()=>setF(prev=>({...prev,zona:prev.zona===''?'':prev.zona})),50);
+    // Forzar zona vacía si Chrome la llenó con datos del admin
+    const t2=setTimeout(()=>{
+      const zona=document.querySelector('input[placeholder="EJ: CABA, GBA NORTE..."]');
+      if(zona&&zona.matches(':-webkit-autofill'))setF(prev=>({...prev,zona:''}));
+    },200);
+    return()=>{clearTimeout(t);clearTimeout(t2);};
+  },[]);
   function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'comer',activo:true});}
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
