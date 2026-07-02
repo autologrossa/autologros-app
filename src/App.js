@@ -196,7 +196,6 @@ function PanelUsuarios({ usuarios, user, onActualizar }) {
   const [guardando, setGuardando] = useState(false);
   const [ok, setOk] = useState(false);
 
-  // También incluir el analista
   const todos = [...(usuarios || [])];
 
   async function cambiarPassword(codigo) {
@@ -222,7 +221,6 @@ function PanelUsuarios({ usuarios, user, onActualizar }) {
         Desde aquí podés cambiar la contraseña de cualquier usuario del sistema.
       </div>
 
-      {/* Usuario ANALISTA */}
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>ROLES ÚNICOS</div>
         {['ANALISTA', 'ADMIN'].map(cod => (
@@ -256,7 +254,6 @@ function PanelUsuarios({ usuarios, user, onActualizar }) {
         ))}
       </div>
 
-      {/* COMERCIALES */}
       <div style={{ marginTop: 20 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>COMERCIALES</div>
         {todos.map(u => (
@@ -315,7 +312,7 @@ function Admin({user,onLogout}){
   async function eliminarEmb(id){if(!window.confirm('¿ELIMINAR ESTE COMERCIAL?'))return;await db.deleteEmbajador(id);await cargar();}
 
   if(editando||nueva) return <FormLinea linea={editando} onGuardar={guardarLinea} onCancelar={()=>{setEditando(null);setNueva(false);}} user={user} onLogout={onLogout}/>;
-  if(nuevoEmb) return <FormComer onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout} comerciales={embajadores}/>;
+  if(nuevoEmb) return <FormComer onGuardar={guardarEmb} onCancelar={()=>setNuevoEmb(false)} user={user} onLogout={onLogout} comerciales={comerciales}/>;
   if(legajoAdmin) return <LegajoDigital sol={legajoAdmin} user={user} onVolver={()=>setLegajoAdmin(null)} onActualizar={cargar}/>;
   if(moduloE) return <ModuloE sol={moduloE} user={user} onVolver={()=>setModuloE(null)} onActualizar={cargar}/>;
   if(cuentaCte) return <CuentaCorriente credito={cuentaCte} user={user} onVolver={()=>setCuentaCte(null)} onActualizar={cargar}/>;
@@ -379,7 +376,7 @@ function Admin({user,onLogout}){
             })}
           </>
         )}
-        {tab==='usuarios'&&<PanelUsuarios usuarios={embajadores} user={user} onActualizar={cargar}/>}
+        {tab==='usuarios'&&<PanelUsuarios usuarios={comerciales} user={user} onActualizar={cargar}/>}
         {tab==='legajos'&&<PanelLegajos sols={sols||[]} user={user} onVerLegajo={setLegajoAdmin} onDesembolsar={setModuloE}/>}
         {tab==='cartera'&&<ModuloF user={user} onVerCuenta={setCuentaCte}/>}
         {tab==='reportes'&&<ModuloH user={user}/>}
@@ -404,7 +401,6 @@ function Admin({user,onLogout}){
                 </div>
               </Card>
             ))}
-
           </>
         )}
       </div>
@@ -558,36 +554,6 @@ function FormComer({onGuardar,onCancelar,user,onLogout,comerciales}){
     </div>
   );
 }
-function FormComer({onGuardar,onCancelar,user,onLogout}){
-  const [f,setF]=useState({nombre:'',apellido:'',codigo:'',zona:'',email:'',telefono:'',password:''});
-  function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'comer',activo:true});}
-  return (
-    <div style={{minHeight:'100vh',background:C.bg2}}>
-      <Hdr title="PANEL ADMINISTRADOR" user={user} onLogout={onLogout}/>
-      <div style={{padding:28,maxWidth:720,margin:'0 auto'}}>
-        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:28}}>
-          <button onClick={onCancelar} style={{background:'none',border:'none',fontSize:20,cursor:'pointer',color:C.text3}}>←</button>
-          <div style={{fontSize:17,fontWeight:900,color:C.text,letterSpacing:'0.06em',textTransform:'uppercase'}}>NUEVO COMERCIAL</div>
-        </div>
-        <Card style={{padding:32}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 20px'}}>
-            <Inp label="NOMBRE" value={f.nombre} onChange={e=>setF({...f,nombre:e.target.value})} req/>
-            <Inp label="APELLIDO" value={f.apellido} onChange={e=>setF({...f,apellido:e.target.value})} req/>
-            <Inp label="CÓDIGO DE USUARIO" value={f.codigo} onChange={e=>setF({...f,codigo:e.target.value})} placeholder="EMB003" req/>
-            <Inp label="ZONA / SECTOR" value={f.zona} onChange={e=>setF({...f,zona:e.target.value})} placeholder="EJ: CABA, GBA NORTE..."/>
-            <Inp label="EMAIL" type="email" value={f.email} onChange={e=>setF({...f,email:e.target.value})}/>
-            <Inp label="TELÉFONO" value={f.telefono} onChange={e=>setF({...f,telefono:e.target.value})}/>
-            <div style={{gridColumn:'1/-1'}}><Inp label="CONTRASEÑA INICIAL" type="password" value={f.password} onChange={e=>setF({...f,password:e.target.value})} hint="El Comercial deberá cambiarla en su primer ingreso" req/></div>
-          </div>
-          <div style={{display:'flex',gap:12,justifyContent:'flex-end',marginTop:8}}>
-            <Btn onClick={onCancelar} variant="sec">CANCELAR</Btn>
-            <Btn onClick={guardar} variant="gold" disabled={!f.nombre||!f.apellido||!f.codigo||!f.password}>CREAR COMERCIAL</Btn>
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
 
 // ── PANEL INFORMES (BCRA + NOSIS de solicitudes ya analizadas) ────────────────
 function PanelInformes({sols}){
@@ -611,7 +577,6 @@ function PanelInformes({sols}){
           <div style={{marginLeft:'auto'}}><Badge text={s.estado_texto||s.estado} type={s.estado}/></div>
         </div>
 
-        {/* Resumen crédito */}
         <Card style={{padding:18,marginBottom:16}}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
             {[['LÍNEA',s.linea_nombre],['MONTO',fmt(s.monto)],['PLAZO',`${s.plazo} M`],['CUOTA',fmt(s.cuota)]].map(([l,v])=>(
@@ -627,7 +592,6 @@ function PanelInformes({sols}){
         <PanelVisualCredito bcra={bcra} nosis={nosis} cuil={cli.cuil} />
 
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
-          {/* BCRA */}
           <Card style={{padding:20}}>
             <div style={{fontSize:12,fontWeight:900,color:C.blue,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>CENTRAL DE DEUDORES BCRA</div>
             {bcra?.ok?(
@@ -661,7 +625,6 @@ function PanelInformes({sols}){
             )}
           </Card>
 
-          {/* Nosis */}
           <Card style={{padding:20}}>
             <div style={{fontSize:12,fontWeight:900,color:C.gold,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:14}}>BUREAU NOSIS</div>
             {nosis?.ok?(
@@ -1266,18 +1229,16 @@ function evaluarCredito(bcra, nosis, prom30) {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PANEL VISUAL DE ANÁLISIS CREDITICIO — Gráficos simulados (hasta Nosis real)
+// PANEL VISUAL DE ANÁLISIS CREDITICIO
 // ══════════════════════════════════════════════════════════════════════════════
 
 function generarComposicionDeuda(bcra, nosis) {
-  // Si hay deudas reales del BCRA, usarlas
   if (bcra?.ok && bcra.deudas && bcra.deudas.length > 0) {
     return bcra.deudas.slice(0, 5).map(d => ({
       label: d.entidad || 'Entidad',
       valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 50000) + 10000,
     }));
   }
-  // Simulación basada en compromiso mensual de Nosis
   const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
   const base = compMens > 0 ? compMens * 8 : 45000;
   return [
@@ -1298,7 +1259,6 @@ const ENTIDADES_BANCARIAS = [
 ];
 
 function generarEntidadesSituacion(bcra, nosis) {
-  // Si hay entidades reales del BCRA, usarlas con su situación real
   if (bcra?.ok && bcra.deudas && bcra.deudas.length > 0) {
     return bcra.deudas.map(d => ({
       label: d.entidad || 'Entidad',
@@ -1306,7 +1266,6 @@ function generarEntidadesSituacion(bcra, nosis) {
       sit: d.situacion || 1,
     })).sort((a,b)=>b.valor-a.valor);
   }
-  // Simulación: cartera de entidades con situaciones variadas, mayoría en situación 1
   const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
   const peorSit = bcra?.peorSit || 1;
   const baseTotal = compMens > 0 ? compMens * 60 : 52000000;
@@ -1331,7 +1290,7 @@ function generarEvolucionDeuda(bcra, nosis) {
   const meses = ['Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar','Abr','May','Jun'];
   const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
   const baseFinal = compMens > 0 ? compMens * 8 : 45000;
-  const tendencia = bcra?.ok && bcra.peorSit >= 2 ? 1.06 : 0.97; // creciente si hay riesgo, decreciente si está bien
+  const tendencia = bcra?.ok && bcra.peorSit >= 2 ? 1.06 : 0.97;
   let valor = baseFinal / Math.pow(tendencia, 11);
   const seed = (bcra?.cantEntidades || 1) * 17 + (nosis?.consultas12m || 3) * 7;
   return meses.map((mes, i) => {
@@ -1376,7 +1335,6 @@ function DonutChart({ data, size = 180 }) {
 
 function BarChartEvolucion({ data, height = 140 }) {
   const max = Math.max(...data.map(d => d.valor), 1);
-  const barW = 100 / data.length;
   return (
     <svg width="100%" height={height + 30} viewBox={`0 0 300 ${height + 30}`} preserveAspectRatio="none" style={{ display: 'block' }}>
       {data.map((d, i) => {
@@ -1457,7 +1415,6 @@ function PanelEntidadesSituacion({ bcra, nosis }) {
         SITUACIÓN CREDITICIA POR ENTIDAD — CENTRAL DE DEUDORES
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20 }}>
-        {/* Tabla */}
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
             <thead>
@@ -1491,7 +1448,6 @@ function PanelEntidadesSituacion({ bcra, nosis }) {
             </tfoot>
           </table>
         </div>
-        {/* Torta grande */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <DonutGrandeSituacion data={entidades} size={220} />
           <div style={{ display: 'flex', gap: 14, marginTop: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
@@ -1583,8 +1539,6 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
       setBcraData(parsearBCRA(rBcra));
       setNosisData(parsearNosis(rNosis));
     } catch(e) {
-      // ── MODO SIMULACIÓN — Se activa cuando las APIs no están disponibles ──
-      // Reemplazar con datos reales cuando Nosis y BCRA estén conectados
       console.warn('APIs no disponibles — activando modo simulación');
       setSimulado(true);
       setBcraData({
@@ -1827,14 +1781,6 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
   );
 }
 
-
-// Para usar este módulo:
-// 1. Agregar en App.js dentro del componente Analista:
-//    const [moduloC, setModuloC] = useState(null);
-//    if (moduloC) return <ModuloC sol={moduloC} user={user} onVolver={() => setModuloC(null)} onActualizar={cargar} />;
-// 2. En la tabla de solicitudes, para solicitudes aprobadas agregar botón:
-//    onClick={() => s.estado === 'aprobado' ? setModuloC(s) : setDetalle(s)}
-
 const EMPRESA = {
   nombre: 'AUTOLOGROS S.A.',
   cuit: '30-71934732-7',
@@ -2042,9 +1988,9 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
     red:'#E05050', redL:'rgba(224,80,80,0.08)', redB:'rgba(224,80,80,0.15)',
   };
 
-  const [doc, setDoc] = useState('mutuo'); // 'mutuo' | 'pagare'
+  const [doc, setDoc] = useState('mutuo');
   const [firmado, setFirmado] = useState({ mutuo: false, pagare: false });
-  const [paso, setPaso] = useState('docs'); // 'docs' | 'firma_cliente' | 'enviado'
+  const [paso, setPaso] = useState('docs');
   const [enviando, setEnviando] = useState(false);
   const [linkFirma] = useState(`https://autologros-app.vercel.app/firma/${sol.id}`);
 
@@ -2061,8 +2007,8 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
     `Estimado/a ${cli.nombre} ${cli.apellido},\n\nNos comunicamos desde AUTOLOGROS S.A. para informarle que su solicitud de préstamo por $${new Intl.NumberFormat('es-AR').format(Math.round(sol.monto))} ha sido PRE-APROBADA.\n\nPara continuar con el proceso, necesitamos que proceda a la firma digital del Contrato de Mutuo y el Pagaré correspondiente.\n\nAcceda al siguiente enlace para firmar sus documentos:\n${linkFirma}\n\nEste enlace es personal, confidencial e intransferible.\n\nAntes de firmar, le recomendamos leer atentamente ambos documentos.\n\nAnte cualquier consulta no dude en contactarnos.\n\nSaludos cordiales,\n${EMPRESA.representante}\n${EMPRESA.cargo}\nAUTOLOGROS S.A.\n${EMPRESA.domicilio}`
   )}`;
 
-  const Card = ({ children, style }) => <div style={{ background: C.bg4, borderRadius: 12, border: `1px solid ${C.border}`, ...style }}>{children}</div>;
-  const Btn = ({ onClick, children, variant = 'primary', disabled, style, full }) => {
+  const CardLocal = ({ children, style }) => <div style={{ background: C.bg4, borderRadius: 12, border: `1px solid ${C.border}`, ...style }}>{children}</div>;
+  const BtnLocal = ({ onClick, children, variant = 'primary', disabled, style, full }) => {
     const vs = {
       primary: { background: '#1A4F8A', color: '#fff', border: 'none' },
       gold: { background: C.gold, color: '#fff', border: 'none' },
@@ -2084,7 +2030,6 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg2, fontFamily: 'system-ui, Arial, sans-serif' }}>
-      {/* Header */}
       <div style={{ background: C.bg1, borderBottom: `1px solid ${C.border}`, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <svg width={34} height={34} viewBox="0 0 44 44" fill="none">
@@ -2105,8 +2050,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
 
       <div style={{ padding: 28, maxWidth: 1100, margin: '0 auto' }}>
 
-        {/* Info cliente */}
-        <Card style={{ padding: 20, marginBottom: 20 }}>
+        <CardLocal style={{ padding: 20, marginBottom: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10 }}>
             {[
               ['CLIENTE', `${cli.nombre} ${cli.apellido}`],
@@ -2121,13 +2065,11 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
               </div>
             ))}
           </div>
-        </Card>
+        </CardLocal>
 
         {paso === 'docs' && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            {/* Panel izquierdo — selector y preview */}
             <div>
-              {/* Tabs doc */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 {[['mutuo', 'CONTRATO DE MUTUO'], ['pagare', 'PAGARÉ']].map(([k, l]) => (
                   <button key={k} onClick={() => setDoc(k)}
@@ -2138,8 +2080,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                 ))}
               </div>
 
-              {/* Preview del documento */}
-              <Card style={{ padding: 0, overflow: 'hidden' }}>
+              <CardLocal style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ padding: '12px 16px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {doc === 'mutuo' ? 'CONTRATO DE MUTUO CON INTERÉS' : 'PAGARÉ SIN PROTESTO'}
@@ -2151,14 +2092,13 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                     {textoActual}
                   </pre>
                 </div>
-              </Card>
+              </CardLocal>
 
-              {/* Botón firmar empresa */}
               <div style={{ marginTop: 14 }}>
                 {!firmado[doc] ? (
-                  <Btn onClick={() => setFirmado({ ...firmado, [doc]: true })} variant="gold" full>
+                  <BtnLocal onClick={() => setFirmado({ ...firmado, [doc]: true })} variant="gold" full>
                     ✍️ FIRMAR {doc === 'mutuo' ? 'CONTRATO' : 'PAGARÉ'} — AUTOLOGROS S.A.
-                  </Btn>
+                  </BtnLocal>
                 ) : (
                   <div style={{ background: C.greenL, border: `1px solid ${C.greenB}`, borderRadius: 8, padding: '12px 16px', textAlign: 'center' }}>
                     <div style={{ fontSize: 13, fontWeight: 900, color: C.green }}>✓ FIRMADO POR AUTOLOGROS S.A.</div>
@@ -2170,10 +2110,8 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
               </div>
             </div>
 
-            {/* Panel derecho — estado y acciones */}
             <div>
-              {/* Estado de firmas */}
-              <Card style={{ padding: 20, marginBottom: 16 }}>
+              <CardLocal style={{ padding: 20, marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>ESTADO DE FIRMAS</div>
                 {[
                   ['CONTRATO DE MUTUO', 'mutuo'],
@@ -2196,10 +2134,9 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                   </div>
                   <div style={{ fontSize: 20 }}>📱</div>
                 </div>
-              </Card>
+              </CardLocal>
 
-              {/* Progreso */}
-              <Card style={{ padding: 20, marginBottom: 16 }}>
+              <CardLocal style={{ padding: 20, marginBottom: 16 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>PASOS DEL PROCESO</div>
                 {[
                   ['1', 'Revisar y firmar documentos (empresa)', ambosListos],
@@ -2214,13 +2151,12 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                     <div style={{ fontSize: 12, color: done ? C.text : C.text2, fontWeight: done ? 700 : 400 }}>{label}</div>
                   </div>
                 ))}
-              </Card>
+              </CardLocal>
 
-              {/* Botón continuar */}
               {ambosListos && (
-                <Btn onClick={() => setPaso('envio')} variant="success" full style={{ fontSize: 13, padding: '14px' }}>
+                <BtnLocal onClick={() => setPaso('envio')} variant="success" full style={{ fontSize: 13, padding: '14px' }}>
                   CONTINUAR → ENVIAR LINK AL CLIENTE
-                </Btn>
+                </BtnLocal>
               )}
               {!ambosListos && (
                 <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '12px 16px', fontSize: 11, color: C.gold, fontWeight: 700, textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
@@ -2233,14 +2169,13 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
 
         {paso === 'envio' && (
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
-            <Card style={{ padding: 32 }}>
+            <CardLocal style={{ padding: 32 }}>
               <div style={{ textAlign: 'center', marginBottom: 28 }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📤</div>
                 <div style={{ fontSize: 16, fontWeight: 900, color: C.text, textTransform: 'uppercase', letterSpacing: '0.06em' }}>ENVIAR LINK DE FIRMA AL CLIENTE</div>
                 <div style={{ fontSize: 12, color: C.text2, marginTop: 6, fontWeight: 400 }}>El cliente recibirá el link para revisar y firmar los documentos</div>
               </div>
 
-              {/* Info cliente */}
               <div style={{ background: C.bg3, borderRadius: 10, padding: 18, marginBottom: 24, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>DESTINATARIO</div>
                 <div style={{ fontSize: 15, fontWeight: 900, color: C.text, textTransform: 'uppercase', marginBottom: 4 }}>{cli.nombre} {cli.apellido}</div>
@@ -2248,13 +2183,11 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                 <div style={{ fontSize: 12, color: C.text2 }}>📱 {cli.tel}</div>
               </div>
 
-              {/* Link de firma */}
               <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '12px 16px', marginBottom: 24 }}>
                 <div style={{ fontSize: 9, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>LINK DE FIRMA (AUTOGENERADO)</div>
                 <div style={{ fontSize: 11, color: C.text, fontWeight: 700, wordBreak: 'break-all' }}>{linkFirma}</div>
               </div>
 
-              {/* Botones de envío */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                 <a href={`https://wa.me/${cli.tel?.replace(/[^0-9]/g, '')}?text=${whatsappMsg}`}
                   target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
@@ -2286,13 +2219,13 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
                   ✓ CONFIRMAR ENVÍO
                 </button>
               </div>
-            </Card>
+            </CardLocal>
           </div>
         )}
 
         {paso === 'enviado' && (
           <div style={{ maxWidth: 500, margin: '60px auto', textAlign: 'center' }}>
-            <Card style={{ padding: 48 }}>
+            <CardLocal style={{ padding: 48 }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>✅</div>
               <div style={{ fontSize: 18, fontWeight: 900, color: C.green, marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase' }}>CONTRATO ENVIADO</div>
               <div style={{ color: C.text2, marginBottom: 8, fontWeight: 400, fontSize: 13 }}>
@@ -2304,7 +2237,7 @@ function ModuloC({ sol, user, onVolver, onActualizar }) {
               <button onClick={onVolver} style={{ background: 'transparent', color: C.gold, border: `1.5px solid ${C.gold}`, padding: '10px 28px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                 VOLVER AL PANEL
               </button>
-            </Card>
+            </CardLocal>
           </div>
         )}
       </div>
