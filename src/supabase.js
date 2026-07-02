@@ -10,6 +10,7 @@ export const db = {
     if (error) throw error;
     return data.map(l => ({
       id: l.id, nombre: l.nombre, descripcion: l.descripcion, activa: l.activa,
+      tipo: l.tipo || 'personal',
       montoMin: l.monto_min, montoMax: l.monto_max, plazos: l.plazos,
       tna: l.tna, seguro: l.seguro||0, comisiones: l.comisiones||0, gastos: l.gastos||0,
       docsReq: l.docs_req, docsOpc: l.docs_opc
@@ -18,6 +19,7 @@ export const db = {
   async saveLinea(linea) {
     const row = {
       id: linea.id, nombre: linea.nombre, descripcion: linea.descripcion, activa: linea.activa,
+      tipo: linea.tipo || 'personal',
       monto_min: linea.montoMin, monto_max: linea.montoMax, plazos: linea.plazos,
       tna: linea.tna, seguro: linea.seguro||0, comisiones: linea.comisiones||0, gastos: linea.gastos||0,
       docs_req: linea.docsReq, docs_opc: linea.docsOpc
@@ -35,14 +37,14 @@ export const db = {
     return data;
   },
   async getEmbajadores() {
-    const { data, error } = await supabase.from('usuarios').select('*').eq('rol', 'COMER').eq('activo', true);
+    const { data, error } = await supabase.from('usuarios').select('*').eq('rol', 'comer').eq('activo', true);
     if (error) throw error;
     return data;
   },
   async saveEmbajador(emb) {
     const { error } = await supabase.from('usuarios').upsert({
       codigo: emb.codigo, password: emb.password, nombre: emb.nombre,
-      zona: emb.zona||null, rol: 'embajador', activo: true
+      zona: emb.zona||null, rol: 'comer', activo: true
     });
     if (error) throw error;
   },
@@ -60,12 +62,13 @@ export const db = {
   async saveSolicitud(sol) {
     const { error } = await supabase.from('solicitudes').upsert({
       id: sol.id, fecha: sol.fecha, emb_cod: sol.embCod, emb_nombre: sol.embNombre,
-      linea_id: sol.lineaId, linea_nombre: sol.lineaNombre, plazo: sol.plazo,
-      monto: sol.monto, tna: sol.tna, cuota: sol.cuota, prom_sueldo: sol.promSueldo,
-      cliente: sol.cli, docs: sol.docs, estado: sol.estado,
+      linea_id: sol.lineaId, linea_nombre: sol.lineaNombre, linea_tipo: sol.lineaTipo || 'personal',
+      plazo: sol.plazo, monto: sol.monto, tna: sol.tna, cuota: sol.cuota,
+      prom_sueldo: sol.promSueldo, cliente: sol.cli, docs: sol.docs, estado: sol.estado,
       estado_texto: sol.estadoTexto, obs: '',
-token_firma: sol.tokenFirma || sol.id,
-fecha_token_generado: sol.fechaTokenGenerado || new Date().toISOString(),docs_urls: sol.docsUrls || {}
+      token_firma: sol.tokenFirma || sol.id,
+      fecha_token_generado: sol.fechaTokenGenerado || new Date().toISOString(),
+      docs_urls: sol.docsUrls || {}
     });
     if (error) throw error;
   },
@@ -96,24 +99,27 @@ fecha_token_generado: sol.fechaTokenGenerado || new Date().toISOString(),docs_ur
     if (error) throw error;
     return true;
   },
- async uploadDocumento(solicitudId, nombreDoc, archivo) {
+  // uploadDocumento(dni, carpeta, nombreDoc, archivo)
+  // Estructura: documentos/DNI/ID_PRESTAMO/archivo
+  async uploadDocumento(dni, carpeta, nombreDoc, archivo) {
     const ext = archivo.name.split('.').pop();
     const nombreLimpio = nombreDoc
-  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-  .replace(/[^a-zA-Z0-9\s_-]/g, '')
-  .replace(/\s+/g,'_');
-const path = `${solicitudId}/${nombreLimpio}.${ext}`;
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9\s_-]/g, '')
+      .replace(/\s+/g, '_');
+    const path = `${dni}/${carpeta}/${nombreLimpio}.${ext}`;
     const { error } = await supabase.storage.from('documentos').upload(path, archivo, { upsert: true });
     if (error) throw error;
     const { data } = supabase.storage.from('documentos').getPublicUrl(path);
     return data.publicUrl;
   },
-  async getDocumentos(solicitudId) {
-    const { data, error } = await supabase.storage.from('documentos').list(solicitudId);
+  async getDocumentos(dni, carpeta) {
+    const prefix = carpeta ? `${dni}/${carpeta}` : dni;
+    const { data, error } = await supabase.storage.from('documentos').list(prefix);
     if (error) return [];
     return data.map(f => ({
       nombre: f.name,
-      url: supabase.storage.from('documentos').getPublicUrl(`${solicitudId}/${f.name}`).data.publicUrl
+      url: supabase.storage.from('documentos').getPublicUrl(`${prefix}/${f.name}`).data.publicUrl
     }));
   },
 };
