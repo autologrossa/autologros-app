@@ -53,6 +53,7 @@ function Inp({label,type='text',value,onChange,placeholder,req,step,hint}){
         {label}{req&&<span style={{color:C.gold,marginLeft:3}}>*</span>}
       </label>
       <input type={type} value={value} onChange={onChange} placeholder={placeholder} step={step}
+        autoComplete="off"
         style={{width:'100%',padding:'10px 14px',border:`1.5px solid ${C.border2}`,borderRadius:8,
           fontSize:13,color:C.text,background:'rgba(255,255,255,0.05)',outline:'none',
           fontFamily:'inherit',fontWeight:700,letterSpacing:'0.03em',boxSizing:'border-box'}}
