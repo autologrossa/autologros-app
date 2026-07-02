@@ -557,7 +557,8 @@ function FormComer({onGuardar,onCancelar,user,onLogout,comerciales}){
       </div>
     </div>
   );
-}nction FormComer({onGuardar,onCancelar,user,onLogout}){
+}
+function FormComer({onGuardar,onCancelar,user,onLogout}){
   const [f,setF]=useState({nombre:'',apellido:'',codigo:'',zona:'',email:'',telefono:'',password:''});
   function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'comer',activo:true});}
   return (
