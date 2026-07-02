@@ -533,7 +533,7 @@ function FormComer({onGuardar,onCancelar,user,onLogout,comerciales}){
     const max = nums.length > 0 ? Math.max(...nums) : 0;
     return `COMER${String(max + 1).padStart(3, '0')}`;
   };
-  const [f,setF]=useState({nombre:'',apellido:'',dni:'',codigo:proximoCodigo(),zona:'',email:'',telefono:'',password:''});
+  const [f,setF]=useState({nombre:'',apellido:'',dni:'',codigo:proximoCodigo(),zona:'',email:'',telefono:'',password:'',activo:true});
   function guardar(){onGuardar({...f,nombre:`${f.nombre} ${f.apellido}`.trim(),rol:'comer',activo:true});}
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
@@ -818,6 +818,53 @@ function Analista({user,onLogout}){
   );
 }
 
+// ── MI PERFIL (COMER) ─────────────────────────────────────────────────────────
+function MiPerfil({user}){
+  const [nuevaPass,setNuevaPass]=useState('');
+  const [confirmar,setConfirmar]=useState('');
+  const [guardando,setGuardando]=useState(false);
+  const [ok,setOk]=useState('');
+  const [err,setErr]=useState('');
+
+  async function cambiarPass(){
+    if(nuevaPass.length<4){setErr('La contraseña debe tener al menos 4 caracteres.');return;}
+    if(nuevaPass!==confirmar){setErr('Las contraseñas no coinciden.');return;}
+    setGuardando(true);setErr('');setOk('');
+    try{
+      await db.supabase.from('usuarios').update({password:nuevaPass}).eq('codigo',user.codigo);
+      setOk('✓ CONTRASEÑA ACTUALIZADA CORRECTAMENTE');
+      setNuevaPass('');setConfirmar('');
+      setTimeout(()=>setOk(''),3000);
+    }catch(e){setErr('Error al actualizar. Intentá de nuevo.');}
+    setGuardando(false);
+  }
+
+  return (
+    <div style={{maxWidth:500}}>
+      <Card style={{padding:28,marginBottom:16}}>
+        <div style={{fontSize:14,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:20}}>MI CUENTA</div>
+        {[['NOMBRE',user.nombre],['CÓDIGO DE USUARIO',user.codigo],['ZONA / SECTOR',user.zona||'—']].map(([l,v])=>(
+          <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',borderBottom:`1px solid ${C.border}`}}>
+            <span style={{fontSize:11,color:C.text3,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>{l}</span>
+            <span style={{fontSize:13,fontWeight:700,color:C.text}}>{v}</span>
+          </div>
+        ))}
+      </Card>
+      <Card style={{padding:28}}>
+        <div style={{fontSize:14,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>CAMBIAR CONTRASEÑA</div>
+        <div style={{fontSize:11,color:C.text3,marginBottom:20,fontWeight:400}}>Tu contraseña es personal. No la compartas con nadie.</div>
+        <Inp label="NUEVA CONTRASEÑA" type="password" value={nuevaPass} onChange={e=>setNuevaPass(e.target.value)} placeholder="Mínimo 4 caracteres" req/>
+        <Inp label="CONFIRMAR CONTRASEÑA" type="password" value={confirmar} onChange={e=>setConfirmar(e.target.value)} placeholder="Repetí la contraseña" req/>
+        {err&&<div style={{background:C.redL,color:C.red,borderRadius:8,padding:'10px 14px',fontSize:12,marginBottom:16,border:`1px solid ${C.redB}`,fontWeight:700,letterSpacing:'0.04em'}}>{err}</div>}
+        {ok&&<div style={{background:C.greenL,color:C.green,borderRadius:8,padding:'10px 14px',fontSize:12,marginBottom:16,border:`1px solid ${C.greenB}`,fontWeight:700,letterSpacing:'0.04em'}}>{ok}</div>}
+        <Btn onClick={cambiarPass} disabled={guardando||!nuevaPass||!confirmar} variant="gold">
+          {guardando?'GUARDANDO...':'🔑 ACTUALIZAR CONTRASEÑA'}
+        </Btn>
+      </Card>
+    </div>
+  );
+}
+
 // ── COMERCIAL ─────────────────────────────────────────────────────────────────
 function Comer({user,onLogout}){
   const [tab,setTab]=useState('nueva');const [lineas,setLineas]=useState([]);const [sols,setSols]=useState([]);const [detalle,setDetalle]=useState(null);
@@ -827,9 +874,10 @@ function Comer({user,onLogout}){
   return (
     <div style={{minHeight:'100vh',background:C.bg2}}>
       <Hdr title="PORTAL COMERCIAL" user={user} onLogout={onLogout}/>
-      <Tabs tabs={[['nueva','NUEVA SOLICITUD'],['mis','MIS SOLICITUDES']]} active={tab} onChange={k=>{setTab(k);if(k==='mis')cargarSols();}}/>
+      <Tabs tabs={[['nueva','NUEVA SOLICITUD'],['mis','MIS SOLICITUDES'],['perfil','MI PERFIL']]} active={tab} onChange={k=>{setTab(k);if(k==='mis')cargarSols();}}/>
       <div style={{padding:28,maxWidth:860,margin:'0 auto'}}>
         {tab==='nueva'&&<NuevaSol user={user} lineas={lineas} onEnviada={()=>{cargarSols();setTab('mis');}}/>}
+        {tab==='perfil'&&<MiPerfil user={user}/>}
         {tab==='mis'&&(!sols.length
           ?<Card style={{padding:60,textAlign:'center'}}><div style={{fontSize:36,marginBottom:12}}>📋</div><div style={{color:C.text3,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase'}}>TODAVÍA NO CARGASTE SOLICITUDES</div></Card>
           :sols.map(s=>(
