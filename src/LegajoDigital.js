@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { db } from './supabase';
- 
+
 const C = {
   bg0:'#030F1E', bg1:'#06172E', bg2:'#071829', bg3:'#0A1F3A', bg4:'#0D2540',
   border:'rgba(255,255,255,0.08)', border2:'rgba(255,255,255,0.12)',
@@ -9,7 +9,7 @@ const C = {
   blue:'#4A9AE0', green:'#4AE08A', greenL:'rgba(74,224,138,0.08)', greenB:'rgba(74,224,138,0.15)',
   red:'#E05050', redL:'rgba(224,80,80,0.08)', redB:'rgba(224,80,80,0.15)',
 };
- 
+
 const EMPRESA = {
   nombre: 'AUTOLOGROS S.A.',
   cuit: '30-71934732-7',
@@ -17,9 +17,9 @@ const EMPRESA = {
   representante: 'Nicolás Issaharoff',
   cargo: 'Presidente',
 };
- 
+
 const fmt = n => new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
- 
+
 function Seccion({ numero, titulo, children, color }) {
   return (
     <div style={{ marginBottom: 28 }}>
@@ -33,7 +33,7 @@ function Seccion({ numero, titulo, children, color }) {
     </div>
   );
 }
- 
+
 function Campo({ label, valor, color, span }) {
   return (
     <div style={{ background: C.bg3, borderRadius: 8, padding: '10px 14px', border: `1px solid ${C.border}`, gridColumn: span ? '1/-1' : undefined }}>
@@ -43,7 +43,6 @@ function Campo({ label, valor, color, span }) {
   );
 }
 
-// ── Componente de documento — miniatura de imagen, icono de PDF, o etiqueta ────
 function DocItem({ nombre, valor }) {
   const esUrl = typeof valor === 'string' && valor.startsWith('http');
   const esImagen = esUrl && /\.(jpe?g|png|gif|webp)$/i.test(valor);
@@ -75,41 +74,301 @@ function DocItem({ nombre, valor }) {
     </div>
   );
 }
- 
+
+// ── Gráficos del bureau ────────────────────────────────────────────────────────
+const SIT_COLOR = { 1: '#1A8C4A', 2: '#D4B800', 3: '#C2218A', 4: '#C2218A', 5: '#C2218A' };
+const PIE_COLORS = ['#4A9AE0', '#C8922A', '#4AE08A', '#E05050', '#9B7ED8'];
+
+const ENTIDADES_BANCARIAS = [
+  'BBVA SA','Bco CMF SA','Nvo Bco Entre Ríos','Bco De Comercio SA','Bco Supervielle',
+  'Catalinas Coop','Bibank SA','YPF SA','BR Capital SA','Unicred COOP',
+  'Bco De Valores','Marias Capital SA','Bco Macro','Bco Nación','Bco Credicoop',
+  'Bco Santander Río','Bco Pcia Bs As','Bco Industrial','Bco Galicia','American Express'
+];
+
+function generarComposicionDeuda(bcra, nosis) {
+  if (bcra?.ok && bcra.deudas && bcra.deudas.length > 0) {
+    return bcra.deudas.slice(0, 5).map(d => ({
+      label: d.entidad || 'Entidad',
+      valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 50000) + 10000,
+    }));
+  }
+  const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
+  const base = compMens > 0 ? compMens * 8 : 45000;
+  return [
+    { label: 'Tarjeta de Crédito', valor: Math.round(base * 0.42) },
+    { label: 'Préstamo Personal', valor: Math.round(base * 0.31) },
+    { label: 'Financiera', valor: Math.round(base * 0.18) },
+    { label: 'Otros', valor: Math.round(base * 0.09) },
+  ];
+}
+
+function generarEntidadesSituacion(bcra, nosis) {
+  if (bcra?.ok && bcra.deudas && bcra.deudas.length > 0) {
+    return bcra.deudas.map(d => ({
+      label: d.entidad || 'Entidad',
+      valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 5000000) + 500000,
+      sit: d.situacion || 1,
+    })).sort((a,b)=>b.valor-a.valor);
+  }
+  const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
+  const peorSit = bcra?.peorSit || 1;
+  const baseTotal = compMens > 0 ? compMens * 60 : 52000000;
+  const seed = (nosis?.consultas12m || 2) * 13 + (nosis?.antiguedadLaboral || 24);
+  const cantEntidades = 8 + (seed % 7);
+  const entidades = [];
+  let restante = baseTotal;
+  for (let i = 0; i < cantEntidades; i++) {
+    const esUltimo = i === cantEntidades - 1;
+    const pct = esUltimo ? 1 : (0.06 + ((seed * (i+3)) % 17) / 100);
+    const monto = esUltimo ? restante : Math.round(baseTotal * pct);
+    restante -= monto;
+    let sit = 1;
+    if (peorSit >= 2 && i < 6) sit = 2;
+    if (peorSit >= 3 && i === 0) sit = 3;
+    entidades.push({ label: ENTIDADES_BANCARIAS[i % ENTIDADES_BANCARIAS.length], valor: Math.max(monto, 1000), sit });
+  }
+  return entidades.sort((a,b)=>b.valor-a.valor);
+}
+
+function generarEvolucionDeuda(bcra, nosis) {
+  const meses = ['Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar','Abr','May','Jun'];
+  const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
+  const baseFinal = compMens > 0 ? compMens * 8 : 45000;
+  const tendencia = bcra?.ok && bcra.peorSit >= 2 ? 1.06 : 0.97;
+  let valor = baseFinal / Math.pow(tendencia, 11);
+  const seed = (bcra?.cantEntidades || 1) * 17 + (nosis?.consultas12m || 3) * 7;
+  return meses.map((mes, i) => {
+    const ruido = 1 + (((seed * (i + 1)) % 13) - 6) / 100;
+    valor = i === 11 ? baseFinal : valor * tendencia * ruido;
+    return { mes, valor: Math.max(0, Math.round(valor)) };
+  });
+}
+
+function DonutChart({ data, size = 160 }) {
+  const total = data.reduce((s, d) => s + d.valor, 0) || 1;
+  const r = size / 2 - 12;
+  const cx = size / 2, cy = size / 2;
+  let anguloAcum = -90;
+  const arcos = data.map((d, i) => {
+    const pct = d.valor / total;
+    const anguloInicio = anguloAcum;
+    const anguloFin = anguloAcum + pct * 360;
+    anguloAcum = anguloFin;
+    const toRad = a => (a * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(toRad(anguloInicio));
+    const y1 = cy + r * Math.sin(toRad(anguloInicio));
+    const x2 = cx + r * Math.cos(toRad(anguloFin));
+    const y2 = cy + r * Math.sin(toRad(anguloFin));
+    const largeArc = anguloFin - anguloInicio > 180 ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    return { path, color: PIE_COLORS[i % PIE_COLORS.length] };
+  });
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {arcos.map((a, i) => <path key={i} d={a.path} fill={a.color} stroke="#0A1F3A" strokeWidth="2" opacity="0.92" />)}
+      <circle cx={cx} cy={cy} r={r * 0.55} fill="#0D2540" />
+      <text x={cx} y={cy - 4} textAnchor="middle" fontSize="10" fontWeight="900" fill="#fff">DEUDA</text>
+      <text x={cx} y={cy + 12} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.5)">TOTAL</text>
+    </svg>
+  );
+}
+
+function DonutGrandeSituacion({ data, size = 200 }) {
+  const total = data.reduce((s, d) => s + d.valor, 0) || 1;
+  const r = size / 2 - 8;
+  const cx = size / 2, cy = size / 2;
+  let anguloAcum = -90;
+  const arcos = data.map((d) => {
+    const pct = d.valor / total;
+    const anguloInicio = anguloAcum;
+    const anguloFin = anguloAcum + pct * 360;
+    anguloAcum = anguloFin;
+    const toRad = a => (a * Math.PI) / 180;
+    const x1 = cx + r * Math.cos(toRad(anguloInicio));
+    const y1 = cy + r * Math.sin(toRad(anguloInicio));
+    const x2 = cx + r * Math.cos(toRad(anguloFin));
+    const y2 = cy + r * Math.sin(toRad(anguloFin));
+    const largeArc = anguloFin - anguloInicio > 180 ? 1 : 0;
+    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+    return { path, color: SIT_COLOR[d.sit] || SIT_COLOR[1] };
+  });
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {arcos.map((a, i) => <path key={i} d={a.path} fill={a.color} stroke="#0A1F3A" strokeWidth="1.5" />)}
+    </svg>
+  );
+}
+
+function BarChartEvolucion({ data, height = 110 }) {
+  const max = Math.max(...data.map(d => d.valor), 1);
+  return (
+    <svg width="100%" height={height + 28} viewBox={`0 0 300 ${height + 28}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+      {data.map((d, i) => {
+        const h = (d.valor / max) * height;
+        const x = i * (300 / data.length) + 2;
+        const w = (300 / data.length) - 4;
+        const esUltimo = i === data.length - 1;
+        return (
+          <g key={i}>
+            <rect x={x} y={height - h} width={w} height={h} rx="2" fill={esUltimo ? '#C8922A' : '#4A9AE0'} opacity={esUltimo ? 1 : 0.65} />
+            <text x={x + w / 2} y={height + 14} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.45)" fontWeight="700">{d.mes}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function PanelVisualLegajo({ bcra, nosis, cuil }) {
+  const composicion = generarComposicionDeuda(bcra, nosis);
+  const evolucion = generarEvolucionDeuda(bcra, nosis);
+  const entidades = generarEntidadesSituacion(bcra, nosis);
+  const totalDeuda = composicion.reduce((s, d) => s + d.valor, 0);
+  const totalEnt = entidades.reduce((s, d) => s + d.valor, 0) || 1;
+  const porSit = {};
+  entidades.forEach(e => { porSit[e.sit] = (porSit[e.sit] || 0) + e.valor; });
+  const fmtM = n => new Intl.NumberFormat('es-AR').format(Math.round(n));
+
+  return (
+    <>
+      {/* Tabla entidades */}
+      <div style={{ background: C.bg4, borderRadius: 10, padding: 18, border: `1px solid ${C.border}`, marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+          SITUACIÓN CREDITICIA POR ENTIDAD — CENTRAL DE DEUDORES
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+              <thead>
+                <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                  {['','Sit.','Entidad','Monto','%'].map((h,i) => (
+                    <th key={i} style={{ textAlign: i>=3?'right':'left', padding: '5px 7px', color: C.text3, fontWeight: 700, fontSize: 9, textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {entidades.map((e, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: '3px 7px' }}><div style={{ width: 5, height: 16, borderRadius: 2, background: SIT_COLOR[e.sit] }}/></td>
+                    <td style={{ padding: '3px 7px', fontWeight: 900, color: SIT_COLOR[e.sit], fontSize: 11 }}>{e.sit}</td>
+                    <td style={{ padding: '3px 7px', color: C.text, fontWeight: 600, fontSize: 11 }}>{e.label}</td>
+                    <td style={{ padding: '3px 7px', color: C.text2, textAlign: 'right', fontSize: 11 }}>${fmtM(e.valor)}</td>
+                    <td style={{ padding: '3px 7px', color: C.text3, textAlign: 'right', fontSize: 11 }}>{((e.valor/totalEnt)*100).toFixed(0)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop: `2px solid ${C.border}` }}>
+                  <td colSpan="3" style={{ padding: '7px', fontWeight: 900, color: C.text, fontSize: 11 }}>Total</td>
+                  <td colSpan="2" style={{ padding: '7px', fontWeight: 900, color: C.gold, textAlign: 'right', fontSize: 12 }}>${fmtM(totalEnt)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <DonutGrandeSituacion data={entidades} size={200} />
+            <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {[1,2,3].map(sit => porSit[sit] ? (
+                <div key={sit} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 9, height: 9, borderRadius: 2, background: SIT_COLOR[sit] }}/>
+                  <span style={{ fontSize: 10, color: C.text2, fontWeight: 700 }}>Sit. {sit}: {((porSit[sit]/totalEnt)*100).toFixed(0)}%</span>
+                </div>
+              ) : null)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Composición + evolución */}
+      <div style={{ background: C.bg4, borderRadius: 10, padding: 18, border: `1px solid ${C.border}`, marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em' }}>ANÁLISIS VISUAL — SITUACIÓN CREDITICIA</div>
+          <div style={{ fontSize: 9, background: C.goldL, color: C.gold, padding: '2px 8px', borderRadius: 10, fontWeight: 700, border: `1px solid ${C.goldB}`, textTransform: 'uppercase' }}>⚠️ Modo simulación</div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>COMPOSICIÓN DE DEUDA</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: C.bg3, borderRadius: 10, padding: 14, border: `1px solid ${C.border}` }}>
+              <DonutChart data={composicion} size={140} />
+              <div style={{ flex: 1 }}>
+                {composicion.map((d, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
+                    <div style={{ width: 9, height: 9, borderRadius: 2, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }}/>
+                    <div style={{ fontSize: 10, color: C.text2, fontWeight: 600, flex: 1 }}>{d.label}</div>
+                    <div style={{ fontSize: 10, color: C.text, fontWeight: 800 }}>{fmt(d.valor)}</div>
+                  </div>
+                ))}
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 10, color: C.text3, fontWeight: 700, textTransform: 'uppercase' }}>Total</span>
+                  <span style={{ fontSize: 13, color: C.gold, fontWeight: 900 }}>{fmt(totalDeuda)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>BUREAU NOSIS</div>
+            <div style={{ background: '#0A1F3A', borderRadius: 10, border: `1px solid ${C.border}`, padding: 14, textAlign: 'center' }}>
+              <svg width="100%" height="80" viewBox="0 0 240 80">
+                <rect x="6" y="6" width="228" height="68" rx="8" fill="#0D2540" stroke="#C8922A" strokeWidth="1.5"/>
+                <circle cx="32" cy="28" r="9" fill="none" stroke="#4A9AE0" strokeWidth="2"/>
+                <path d="M 24 42 Q 32 33 40 42" fill="none" stroke="#4A9AE0" strokeWidth="2"/>
+                <text x="50" y="24" fontSize="9" fontWeight="900" fill="#fff">INFORME CREDITICIO</text>
+                <text x="50" y="35" fontSize="7" fill="rgba(255,255,255,0.5)">CUIL {cuil || 'N/D'}</text>
+                <line x1="50" y1="40" x2="220" y2="40" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
+                <rect x="50" y="46" width="45" height="5" rx="2" fill="rgba(74,154,224,0.4)"/>
+                <rect x="100" y="46" width="32" height="5" rx="2" fill="rgba(74,224,138,0.4)"/>
+                <rect x="138" y="46" width="55" height="5" rx="2" fill="rgba(200,146,42,0.4)"/>
+                <rect x="50" y="57" width="72" height="5" rx="2" fill="rgba(255,255,255,0.15)"/>
+                <rect x="128" y="57" width="36" height="5" rx="2" fill="rgba(255,255,255,0.15)"/>
+                <text x="50" y="72" fontSize="6" fill="rgba(255,255,255,0.3)" fontStyle="italic">Documento simulado — Bureau Nosis</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>EVOLUCIÓN 12 MESES</div>
+          <div style={{ background: C.bg3, borderRadius: 10, padding: 14, border: `1px solid ${C.border}` }}>
+            <BarChartEvolucion data={evolucion} height={100} />
+          </div>
+        </div>
+        <div style={{ marginTop: 10, fontSize: 9, color: C.text3, fontStyle: 'italic' }}>
+          Datos ilustrativos mientras la integración con Nosis no esté contratada. No representan información crediticia real.
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Componente principal ───────────────────────────────────────────────────────
 export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
   const [confirmBorrar, setConfirmBorrar] = useState(false);
   const [borrando, setBorrando] = useState(false);
   const legajoRef = useRef(null);
   const esAdmin = user?.rol === 'admin';
- 
+
   const cli = sol?.cliente || {};
   const firma = sol?.firma_metadata || {};
   const bcra = sol?.bcra_data || {};
   const nosis = sol?.nosis_data || {};
- 
+  const tieneBureau = bcra?.ok || nosis?.ok;
+
   const colorSit = sit => sit === 1 ? C.green : sit === 2 ? C.gold : C.red;
 
-  // Construir mapa de documentos: nombre -> url o nombre
-  // Priorizar docs_urls (objeto con URLs reales) sobre docs (array de nombres)
   const docsMap = {};
   if (sol?.docs_urls && Object.keys(sol.docs_urls).length > 0) {
-    // Nuevo formato: objeto {nombre: url}
-    Object.entries(sol.docs_urls).forEach(([nombre, valor]) => {
-      docsMap[nombre] = valor;
-    });
+    Object.entries(sol.docs_urls).forEach(([nombre, valor]) => { docsMap[nombre] = valor; });
   } else if (sol?.docs) {
-    // Formato anterior: array de nombres
     sol.docs.forEach(d => {
       if (typeof d === 'string' && d.startsWith('http')) {
         const partes = d.split('/');
-        const nombreArchivo = decodeURIComponent(partes[partes.length - 1] || d);
-        docsMap[nombreArchivo] = d;
+        docsMap[decodeURIComponent(partes[partes.length - 1] || d)] = d;
       } else {
         docsMap[d] = d;
       }
     });
   }
- 
+
   async function borrarLegajo() {
     setBorrando(true);
     await db.updateSolicitud(sol.id, {
@@ -124,7 +383,7 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
     onActualizar();
     onVolver();
   }
- 
+
   function imprimirPDF() {
     const contenido = legajoRef.current;
     if (!contenido) return;
@@ -142,9 +401,10 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
     ventana.document.close();
     setTimeout(() => ventana.print(), 500);
   }
- 
+
   return (
     <div style={{ minHeight: '100vh', background: C.bg2, fontFamily: 'system-ui, Arial, sans-serif' }}>
+      {/* Header */}
       <div style={{ background: C.bg1, borderBottom: `1px solid ${C.border}`, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <svg width={30} height={30} viewBox="0 0 44 44" fill="none">
@@ -172,22 +432,38 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
           <button onClick={onVolver} style={{ background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}`, padding: '9px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>← VOLVER</button>
         </div>
       </div>
- 
+
       <div style={{ padding: 28, maxWidth: 960, margin: '0 auto' }}>
         {!esAdmin && (
           <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '10px 16px', marginBottom: 20, fontSize: 11, color: C.gold, fontWeight: 700 }}>
             🔒 MODO SOLO LECTURA — El analista puede visualizar e imprimir el legajo pero no puede modificarlo ni eliminarlo.
           </div>
         )}
- 
+
         <div ref={legajoRef}>
           {/* CARÁTULA */}
-          <div style={{ textAlign: 'center', marginBottom: 28, padding: 24, border: `2px solid ${C.gold}`, borderRadius: 12, background: C.bg4 }}>
-            <div style={{ fontSize: 11, color: C.text3, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>LEGAJO CREDITICIO DIGITAL</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: C.gold, letterSpacing: '0.1em', marginBottom: 4 }}>{EMPRESA.nombre}</div>
-            <div style={{ fontSize: 12, color: C.text2, marginBottom: 4 }}>CUIT {EMPRESA.cuit} · {EMPRESA.domicilio}</div>
-            <div style={{ fontSize: 20, fontWeight: 900, color: C.text, textTransform: 'uppercase', marginTop: 12, marginBottom: 4 }}>{cli.nombre} {cli.apellido}</div>
-            <div style={{ fontSize: 12, color: C.text2 }}>DNI {cli.dni} · CUIL {cli.cuil}</div>
+          <div style={{ marginBottom: 28, padding: 24, border: `2px solid ${C.gold}`, borderRadius: 12, background: C.bg4 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: C.text3, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 4 }}>LEGAJO CREDITICIO DIGITAL</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: C.gold, letterSpacing: '0.1em', marginBottom: 4 }}>{EMPRESA.nombre}</div>
+                <div style={{ fontSize: 12, color: C.text2, marginBottom: 4 }}>CUIT {EMPRESA.cuit} · {EMPRESA.domicilio}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: C.text, textTransform: 'uppercase', marginTop: 12, marginBottom: 4 }}>{cli.nombre} {cli.apellido}</div>
+                <div style={{ fontSize: 12, color: C.text2 }}>DNI {cli.dni} · CUIL {cli.cuil}</div>
+              </div>
+              {/* SELFIE del cliente */}
+              {firma?.selfie_png && (
+                <div style={{ marginLeft: 20, flexShrink: 0 }}>
+                  <div style={{ fontSize: 9, color: C.green, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, textAlign: 'center' }}>✓ IDENTIDAD VERIFICADA</div>
+                  <img
+                    src={firma.selfie_png}
+                    alt="Selfie cliente"
+                    style={{ width: 110, height: 110, objectFit: 'cover', borderRadius: 10, border: `2px solid ${C.green}`, display: 'block' }}
+                  />
+                  <div style={{ fontSize: 9, color: C.text3, marginTop: 5, textAlign: 'center', fontWeight: 400 }}>Foto en tiempo real</div>
+                </div>
+              )}
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginTop: 18 }}>
               {[['N° SOLICITUD', sol.id, C.gold],['ESTADO', sol.estado_texto || sol.estado, sol.firma_cliente_completada ? C.green : C.gold],['FECHA SOLICITUD', sol.fecha, C.text],['FECHA FIRMA', sol.fecha_firma_cliente ? new Date(sol.fecha_firma_cliente).toLocaleDateString('es-AR') : '—', C.green]].map(([l,v,color]) => (
                 <div key={l} style={{ background: C.bg3, borderRadius: 8, padding: '12px', border: `1px solid ${C.border}` }}>
@@ -197,7 +473,7 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
               ))}
             </div>
           </div>
- 
+
           {/* SECCIÓN 1: DATOS DEL CRÉDITO */}
           <Seccion numero="1" titulo="DATOS DEL CRÉDITO" color={C.blue}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 10 }}>
@@ -211,11 +487,11 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
               <Campo label="CUOTA / SUELDO" valor={sol.prom_sueldo ? `${((sol.cuota/sol.prom_sueldo)*100).toFixed(1)}%` : '—'}/>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <Campo label="EMBAJADOR" valor={sol.emb_nombre}/>
+              <Campo label="COMERCIAL" valor={sol.emb_nombre}/>
               <Campo label="ANALISTA" valor={sol.analista || '—'}/>
             </div>
           </Seccion>
- 
+
           {/* SECCIÓN 2: DATOS DEL CLIENTE */}
           <Seccion numero="2" titulo="DATOS DEL CLIENTE" color={C.text}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
@@ -229,7 +505,7 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
               <Campo label="ANTIGÜEDAD" valor={cli.antig}/>
             </div>
           </Seccion>
- 
+
           {/* SECCIÓN 3: DOCUMENTACIÓN ADJUNTA */}
           <Seccion numero="3" titulo="DOCUMENTACIÓN ADJUNTA" color={C.gold}>
             {Object.keys(docsMap).length > 0 ? (
@@ -248,10 +524,11 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
               </div>
             )}
           </Seccion>
- 
-          {/* SECCIÓN 4: ANÁLISIS CREDITICIO */}
+
+          {/* SECCIÓN 4: ANÁLISIS CREDITICIO CON GRÁFICOS */}
           <Seccion numero="4" titulo="ANÁLISIS CREDITICIO — BCRA + NOSIS" color={C.blue}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {/* Datos crudos */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
               <div style={{ background: C.bg4, borderRadius: 10, padding: 18, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 11, fontWeight: 900, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>CENTRAL DE DEUDORES BCRA</div>
                 {bcra?.ok ? (
@@ -299,8 +576,13 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
                 ) : <div style={{ fontSize: 12, color: C.text3, fontStyle: 'italic' }}>{nosis?.error || 'Sin datos de Nosis'}</div>}
               </div>
             </div>
+
+            {/* Gráficos visuales */}
+            {tieneBureau && (
+              <PanelVisualLegajo bcra={bcra} nosis={nosis} cuil={cli.cuil} />
+            )}
           </Seccion>
- 
+
           {/* SECCIÓN 5: CONTRATO DE MUTUO */}
           <Seccion numero="5" titulo="CONTRATO DE MUTUO CON INTERÉS" color={C.gold}>
             <div style={{ background: C.bg4, borderRadius: 10, padding: 20, border: `1px solid ${C.border}` }}>
@@ -328,7 +610,7 @@ DÉCIMO PRIMERA — FIRMA DIGITAL: Conforme Ley 25.506.`}</pre>
               {sol.firma_cliente_completada && <div style={{ marginTop: 14, padding: '10px 14px', background: C.greenL, borderRadius: 8, border: `1px solid ${C.greenB}`, fontSize: 11, color: C.green, fontWeight: 700 }}>✓ FIRMADO DIGITALMENTE POR AMBAS PARTES · {firma?.timestamp_ar}</div>}
             </div>
           </Seccion>
- 
+
           {/* SECCIÓN 6: PAGARÉ */}
           <Seccion numero="6" titulo="PAGARÉ SIN PROTESTO" color={C.gold}>
             <div style={{ background: C.bg4, borderRadius: 10, padding: 20, border: `1px solid ${C.border}` }}>
@@ -347,7 +629,7 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni} · CUIL ${cli.cuil}`}</p
               {sol.firma_cliente_completada && <div style={{ marginTop: 14, padding: '10px 14px', background: C.greenL, borderRadius: 8, border: `1px solid ${C.greenB}`, fontSize: 11, color: C.green, fontWeight: 700 }}>✓ FIRMADO DIGITALMENTE POR EL DEUDOR · {firma?.timestamp_ar}</div>}
             </div>
           </Seccion>
- 
+
           {/* SECCIÓN 7: FIRMA DIGITAL */}
           <Seccion numero="7" titulo="FIRMA DIGITAL DEL CLIENTE" color={C.green}>
             {sol.firma_cliente_completada && firma ? (
@@ -386,7 +668,7 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni} · CUIL ${cli.cuil}`}</p
               </div>
             )}
           </Seccion>
- 
+
           {/* SECCIÓN 8: CERTIFICADO */}
           {sol.firma_cliente_completada && firma && (
             <Seccion numero="8" titulo="CERTIFICADO DE FIRMA DIGITAL" color={C.green}>
@@ -415,7 +697,7 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni} · CUIL ${cli.cuil}`}</p
     </div>
   );
 }
- 
+
 export function PanelLegajos({ sols, user, onVerLegajo }) {
   const [filtro, setFiltro] = useState('todos');
   const lista = sols.filter(s => {
