@@ -1667,7 +1667,7 @@ function ModuloB({ sol, onVolver, onActualizar, user }) {
     const obsCompleto = `${obs}\n\n--- ANÁLISIS CREDITICIO ---\n${bcraResumen}\n${nosisResumen}`.trim();
     await db.updateSolicitud(sol.id, {
       estado,
-      estado_texto: estado === 'aprobado' ? 'PRE-APROBADO — LINK ENVIADO AL CLIENTE' : 'RECHAZADO',
+      estado_texto: estado === 'aprobado' ? 'PRE-APROBADO — PENDIENTE FIRMA AUTOLOGROS' : 'RECHAZADO',
       obs: obsCompleto,
       analista: user.nombre,
       fecha_res: new Date().toLocaleDateString('es-AR'),
