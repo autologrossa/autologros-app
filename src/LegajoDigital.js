@@ -749,14 +749,14 @@ export function PanelLegajos({ sols, user, onVerLegajo, onDesembolsar }) {
                   {s.bcra_data && <span style={{ fontSize: 10, background: 'rgba(74,154,224,0.15)', color: C.blue, borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: '1px solid rgba(74,154,224,0.3)' }}>BCRA</span>}
                   {s.nosis_data && <span style={{ fontSize: 10, background: C.goldL, color: C.gold, borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: `1px solid ${C.goldB}` }}>NOSIS</span>}
                 </div>
-                {firmado && s.estado !== 'desembolsado' && onDesembolsar && (
+                {firmado && !(s.estado_texto||'').toLowerCase().includes('desembolsado') && s.estado !== 'desembolsado' && onDesembolsar && (
                   <button
                     onClick={e => { e.stopPropagation(); onDesembolsar(s); }}
                     style={{ background: C.green, color: '#000', border: 'none', padding: '7px 14px', borderRadius: 8, fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                     💰 DESEMBOLSAR
                   </button>
                 )}
-                {s.estado === 'desembolsado' && (
+                {((s.estado_texto||'').toLowerCase().includes('desembolsado') || s.estado === 'desembolsado') && (
                   <span style={{ fontSize: 10, background: C.greenL, color: C.green, borderRadius: 6, padding: '4px 12px', fontWeight: 700, border: `1px solid ${C.greenB}`, whiteSpace: 'nowrap' }}>✓ DESEMBOLSADO</span>
                 )}
                 <span style={{ color: C.text3, fontSize: 18 }}>›</span>
