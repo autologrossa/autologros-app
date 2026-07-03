@@ -247,7 +247,6 @@ export default function FirmaCliente() {
     setCamaraError('');
     setCamaraLista(false);
     try {
-      // Intentar cámara frontal primero, luego cualquier cámara
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -258,14 +257,7 @@ export default function FirmaCliente() {
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play();
-          setCamaraLista(true);
-        };
-      }
-      setCamaraActiva(true);
+      setCamaraActiva(true); // primero activar para que el <video> se monte en el DOM
     } catch(err) {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isAndroid = /Android/.test(navigator.userAgent);
@@ -278,6 +270,16 @@ export default function FirmaCliente() {
       }
     }
   }
+
+  // Conectar el stream al <video> una vez que está montado en el DOM
+  useEffect(() => {
+    if (camaraActiva && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play()
+        .then(() => setCamaraLista(true))
+        .catch(() => setCamaraLista(true)); // algunos browsers no necesitan await
+    }
+  }, [camaraActiva]);
 
   function tomarFoto() {
     const video = videoRef.current;
