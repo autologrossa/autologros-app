@@ -94,9 +94,10 @@ function Btn({onClick,children,variant='primary',disabled,style,full}){
   };
   return (
     <button onClick={onClick} disabled={disabled}
-      style={{...vs[variant],padding:'10px 22px',borderRadius:8,fontSize:12,fontWeight:700,
+      style={{...vs[variant],padding:'12px 26px',borderRadius:10,fontSize:13,fontWeight:700,
         cursor:disabled?'not-allowed':'pointer',opacity:disabled?.55:1,fontFamily:'inherit',
-        letterSpacing:'0.08em',textTransform:'uppercase',width:full?'100%':'auto',...style}}>
+        letterSpacing:'0.08em',textTransform:'uppercase',width:full?'100%':'auto',
+        transition:'opacity 0.2s, box-shadow 0.2s',minHeight:42,...style}}>
       {children}
     </button>
   );
@@ -143,10 +144,11 @@ function Tabs({tabs,active,onChange}){
     <div style={{background:C.bg3,borderBottom:`1px solid ${C.border}`,padding:'0 24px',display:'flex',gap:4}}>
       {tabs.map(([k,l])=>(
         <button key={k} onClick={()=>onChange(k)}
-          style={{background:'none',border:'none',padding:'13px 18px',fontSize:12,fontWeight:700,
+          style={{background:'none',border:'none',padding:'15px 20px',fontSize:12,fontWeight:700,
             color:active===k?C.gold:C.text3,
             borderBottom:active===k?`3px solid ${C.gold}`:'3px solid transparent',
-            cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase'}}>
+            cursor:'pointer',fontFamily:'inherit',letterSpacing:'0.06em',textTransform:'uppercase',
+            transition:'color 0.2s'}}>
           {l}
         </button>
       ))}
