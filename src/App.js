@@ -305,7 +305,7 @@ function Admin({user,onLogout}){
   async function cargar(){
     setLoading(true);
     setLineas(await db.getLineas()||[]);
-    setComerciales(await db.getComercializadores()||[]);
+    setComerciales(await db.getEmbajadoresres()||[]);
     setSols(await db.getSolicitudes()||[]);
     setLoading(false);
   }
