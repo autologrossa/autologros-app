@@ -184,7 +184,7 @@ export default function ModuloH({ user }) {
     ['dashboard','DASHBOARD'],
     ['cartera','CARTERA'],
     ['mora','MORA'],
-    ['embajadores','EMBAJADORES'],
+    ['comercializadores','COMERCIALIZADORES'],
     ['facturacion','FACTURACIÓN'],
     ['proyeccion','PROYECCIÓN'],
   ];
@@ -348,10 +348,10 @@ export default function ModuloH({ user }) {
         </div>
       )}
 
-      {/* ── EMBAJADORES ── */}
-      {tab==='embajadores'&&(
+      {/* ── COMERCIALIZADORES ── */}
+      {tab==='comercializadores'&&(
         <div>
-          <div style={{fontSize:14,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:20}}>RANKING DE EMBAJADORES</div>
+          <div style={{fontSize:14,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:20}}>RANKING DE COMERCIALIZADORES</div>
           <Card style={{padding:0,overflow:'hidden'}}>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
               <thead>
@@ -372,7 +372,7 @@ export default function ModuloH({ user }) {
                   </tr>
                 ))}
                 {Object.keys(porEmbajador).length===0&&(
-                  <tr><td colSpan={5} style={{padding:40,textAlign:'center',color:C.text3,fontSize:12}}>Sin datos de embajadores</td></tr>
+                  <tr><td colSpan={5} style={{padding:40,textAlign:'center',color:C.text3,fontSize:12}}>Sin datos de comercializadores</td></tr>
                 )}
               </tbody>
             </table>
