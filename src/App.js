@@ -838,6 +838,8 @@ function MiPerfil({user}){
   const [guardando,setGuardando]=useState(false);
   const [ok,setOk]=useState('');
   const [err,setErr]=useState('');
+  const [foto,setFoto]=useState(user.foto_url||null);
+  const [subiendoFoto,setSubiendoFoto]=useState(false);
 
   async function cambiarPass(){
     if(nuevaPass.length<4){setErr('La contraseña debe tener al menos 4 caracteres.');return;}
@@ -852,10 +854,44 @@ function MiPerfil({user}){
     setGuardando(false);
   }
 
+  async function subirFoto(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    setSubiendoFoto(true);
+    try{
+      const ext=file.name.split('.').pop();
+      const path=`perfiles/${user.codigo}.${ext}`;
+      await db.supabase.storage.from('documentos').upload(path,file,{upsert:true});
+      const {data}=db.supabase.storage.from('documentos').getPublicUrl(path);
+      await db.supabase.from('usuarios').update({foto_url:data.publicUrl}).eq('codigo',user.codigo);
+      setFoto(data.publicUrl);
+    }catch(e){alert('Error al subir la foto. Intentá de nuevo.');}
+    setSubiendoFoto(false);
+  }
+
   return (
     <div style={{maxWidth:500}}>
       <Card style={{padding:28,marginBottom:16}}>
         <div style={{fontSize:14,fontWeight:900,color:C.text,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:20}}>MI CUENTA</div>
+        {/* Foto de perfil */}
+        <div style={{display:'flex',alignItems:'center',gap:20,marginBottom:20,paddingBottom:20,borderBottom:`1px solid ${C.border}`}}>
+          <div style={{position:'relative'}}>
+            {foto
+              ?<img src={foto} alt="Foto de perfil" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover',border:`3px solid ${C.gold}`}}/>
+              :<div style={{width:80,height:80,borderRadius:'50%',background:C.bg3,border:`3px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:32}}>👤</div>
+            }
+          </div>
+          <div>
+            <div style={{fontSize:13,fontWeight:700,color:C.text,marginBottom:6}}>{user.nombre}</div>
+            <div style={{fontSize:11,color:C.text3,marginBottom:10}}>Código: <strong style={{color:C.gold}}>{user.codigo}</strong></div>
+            <label style={{cursor:'pointer'}}>
+              <span style={{fontSize:11,padding:'6px 14px',borderRadius:8,fontWeight:700,background:C.goldL,color:C.gold,border:`1px solid ${C.goldB}`,letterSpacing:'0.04em',textTransform:'uppercase'}}>
+                {subiendoFoto?'SUBIENDO...':foto?'CAMBIAR FOTO':'📷 SUBIR FOTO'}
+              </span>
+              <input type="file" accept="image/*" style={{display:'none'}} disabled={subiendoFoto} onChange={subirFoto}/>
+            </label>
+          </div>
+        </div>
         {[['NOMBRE',user.nombre],['CÓDIGO DE USUARIO',user.codigo],['ZONA / SECTOR',user.zona||'—']].map(([l,v])=>(
           <div key={l} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',borderBottom:`1px solid ${C.border}`}}>
             <span style={{fontSize:11,color:C.text3,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em'}}>{l}</span>
@@ -877,6 +913,7 @@ function MiPerfil({user}){
     </div>
   );
 }
+
 
 // ── COMERCIAL ─────────────────────────────────────────────────────────────────
 function Comer({user,onLogout}){
