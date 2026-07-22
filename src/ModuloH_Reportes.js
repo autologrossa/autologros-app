@@ -355,7 +355,7 @@ export default function ModuloH({ user }) {
           <Card style={{padding:0,overflow:'hidden'}}>
             <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
               <thead>
-                <tr>{['POSICIÓN','EMBAJADOR','CRÉDITOS','CAPITAL ORIGINADO','CUOTA PROM.'].map(h=>(
+                <tr>{['POSICIÓN','COMERCIALIZADOR','CRÉDITOS','CAPITAL ORIGINADO','CUOTA PROM.'].map(h=>(
                   <th key={h} style={{background:C.bg3,color:C.text2,fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',padding:'12px 16px',textAlign:h==='EMBAJADOR'?'left':'right',borderBottom:`1px solid ${C.border}`}}>{h}</th>
                 ))}</tr>
               </thead>
