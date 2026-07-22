@@ -46,7 +46,6 @@ function Campo({ label, valor, color, span }) {
 function DocItem({ nombre, valor }) {
   const esUrl = typeof valor === 'string' && valor.startsWith('http');
   const esImagen = esUrl && /\.(jpe?g|png|gif|webp)$/i.test(valor);
-
   if (esImagen) {
     return (
       <a href={valor} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
@@ -78,38 +77,20 @@ function DocItem({ nombre, valor }) {
 // ── Gráficos del bureau ────────────────────────────────────────────────────────
 const SIT_COLOR = { 1: '#1A8C4A', 2: '#D4B800', 3: '#C2218A', 4: '#C2218A', 5: '#C2218A' };
 const PIE_COLORS = ['#4A9AE0', '#C8922A', '#4AE08A', '#E05050', '#9B7ED8'];
-
-const ENTIDADES_BANCARIAS = [
-  'BBVA SA','Bco CMF SA','Nvo Bco Entre Ríos','Bco De Comercio SA','Bco Supervielle',
-  'Catalinas Coop','Bibank SA','YPF SA','BR Capital SA','Unicred COOP',
-  'Bco De Valores','Marias Capital SA','Bco Macro','Bco Nación','Bco Credicoop',
-  'Bco Santander Río','Bco Pcia Bs As','Bco Industrial','Bco Galicia','American Express'
-];
+const ENTIDADES_BANCARIAS = ['BBVA SA','Bco CMF SA','Nvo Bco Entre Ríos','Bco De Comercio SA','Bco Supervielle','Catalinas Coop','Bibank SA','YPF SA','BR Capital SA','Unicred COOP','Bco De Valores','Marias Capital SA','Bco Macro','Bco Nación','Bco Credicoop','Bco Santander Río','Bco Pcia Bs As','Bco Industrial','Bco Galicia','American Express'];
 
 function generarComposicionDeuda(bcra, nosis) {
   if (bcra?.ok && bcra.deudas && bcra.deudas.length > 0) {
-    return bcra.deudas.slice(0, 5).map(d => ({
-      label: d.entidad || 'Entidad',
-      valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 50000) + 10000,
-    }));
+    return bcra.deudas.slice(0, 5).map(d => ({ label: d.entidad || 'Entidad', valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 50000) + 10000 }));
   }
   const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
   const base = compMens > 0 ? compMens * 8 : 45000;
-  return [
-    { label: 'Tarjeta de Crédito', valor: Math.round(base * 0.42) },
-    { label: 'Préstamo Personal', valor: Math.round(base * 0.31) },
-    { label: 'Financiera', valor: Math.round(base * 0.18) },
-    { label: 'Otros', valor: Math.round(base * 0.09) },
-  ];
+  return [{ label: 'Tarjeta de Crédito', valor: Math.round(base * 0.42) }, { label: 'Préstamo Personal', valor: Math.round(base * 0.31) }, { label: 'Financiera', valor: Math.round(base * 0.18) }, { label: 'Otros', valor: Math.round(base * 0.09) }];
 }
 
 function generarEntidadesSituacion(bcra, nosis) {
   if (bcra?.ok && bcra.deudas && bcra.deudas.length > 0) {
-    return bcra.deudas.map(d => ({
-      label: d.entidad || 'Entidad',
-      valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 5000000) + 500000,
-      sit: d.situacion || 1,
-    })).sort((a,b)=>b.valor-a.valor);
+    return bcra.deudas.map(d => ({ label: d.entidad || 'Entidad', valor: (d.monto || 0) * 1000 || Math.round(Math.random() * 5000000) + 500000, sit: d.situacion || 1 })).sort((a,b)=>b.valor-a.valor);
   }
   const compMens = nosis?.compromisoMensual ? parseFloat(String(nosis.compromisoMensual).replace(/[^0-9.]/g, '')) || 0 : 0;
   const peorSit = bcra?.peorSit || 1;
@@ -147,22 +128,17 @@ function generarEvolucionDeuda(bcra, nosis) {
 
 function DonutChart({ data, size = 160 }) {
   const total = data.reduce((s, d) => s + d.valor, 0) || 1;
-  const r = size / 2 - 12;
-  const cx = size / 2, cy = size / 2;
+  const r = size / 2 - 12; const cx = size / 2, cy = size / 2;
   let anguloAcum = -90;
   const arcos = data.map((d, i) => {
     const pct = d.valor / total;
-    const anguloInicio = anguloAcum;
-    const anguloFin = anguloAcum + pct * 360;
-    anguloAcum = anguloFin;
+    const aI = anguloAcum, aF = anguloAcum + pct * 360;
+    anguloAcum = aF;
     const toRad = a => (a * Math.PI) / 180;
-    const x1 = cx + r * Math.cos(toRad(anguloInicio));
-    const y1 = cy + r * Math.sin(toRad(anguloInicio));
-    const x2 = cx + r * Math.cos(toRad(anguloFin));
-    const y2 = cy + r * Math.sin(toRad(anguloFin));
-    const largeArc = anguloFin - anguloInicio > 180 ? 1 : 0;
-    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-    return { path, color: PIE_COLORS[i % PIE_COLORS.length] };
+    const x1 = cx + r * Math.cos(toRad(aI)), y1 = cy + r * Math.sin(toRad(aI));
+    const x2 = cx + r * Math.cos(toRad(aF)), y2 = cy + r * Math.sin(toRad(aF));
+    const lA = aF - aI > 180 ? 1 : 0;
+    return { path: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${lA} 1 ${x2} ${y2} Z`, color: PIE_COLORS[i % PIE_COLORS.length] };
   });
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -176,22 +152,17 @@ function DonutChart({ data, size = 160 }) {
 
 function DonutGrandeSituacion({ data, size = 200 }) {
   const total = data.reduce((s, d) => s + d.valor, 0) || 1;
-  const r = size / 2 - 8;
-  const cx = size / 2, cy = size / 2;
+  const r = size / 2 - 8; const cx = size / 2, cy = size / 2;
   let anguloAcum = -90;
   const arcos = data.map((d) => {
     const pct = d.valor / total;
-    const anguloInicio = anguloAcum;
-    const anguloFin = anguloAcum + pct * 360;
-    anguloAcum = anguloFin;
+    const aI = anguloAcum, aF = anguloAcum + pct * 360;
+    anguloAcum = aF;
     const toRad = a => (a * Math.PI) / 180;
-    const x1 = cx + r * Math.cos(toRad(anguloInicio));
-    const y1 = cy + r * Math.sin(toRad(anguloInicio));
-    const x2 = cx + r * Math.cos(toRad(anguloFin));
-    const y2 = cy + r * Math.sin(toRad(anguloFin));
-    const largeArc = anguloFin - anguloInicio > 180 ? 1 : 0;
-    const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
-    return { path, color: SIT_COLOR[d.sit] || SIT_COLOR[1] };
+    const x1 = cx + r * Math.cos(toRad(aI)), y1 = cy + r * Math.sin(toRad(aI));
+    const x2 = cx + r * Math.cos(toRad(aF)), y2 = cy + r * Math.sin(toRad(aF));
+    const lA = aF - aI > 180 ? 1 : 0;
+    return { path: `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${lA} 1 ${x2} ${y2} Z`, color: SIT_COLOR[d.sit] || SIT_COLOR[1] };
   });
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
@@ -206,15 +177,9 @@ function BarChartEvolucion({ data, height = 110 }) {
     <svg width="100%" height={height + 28} viewBox={`0 0 300 ${height + 28}`} preserveAspectRatio="none" style={{ display: 'block' }}>
       {data.map((d, i) => {
         const h = (d.valor / max) * height;
-        const x = i * (300 / data.length) + 2;
-        const w = (300 / data.length) - 4;
+        const x = i * (300 / data.length) + 2, w = (300 / data.length) - 4;
         const esUltimo = i === data.length - 1;
-        return (
-          <g key={i}>
-            <rect x={x} y={height - h} width={w} height={h} rx="2" fill={esUltimo ? '#C8922A' : '#4A9AE0'} opacity={esUltimo ? 1 : 0.65} />
-            <text x={x + w / 2} y={height + 14} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.45)" fontWeight="700">{d.mes}</text>
-          </g>
-        );
+        return (<g key={i}><rect x={x} y={height - h} width={w} height={h} rx="2" fill={esUltimo ? '#C8922A' : '#4A9AE0'} opacity={esUltimo ? 1 : 0.65} /><text x={x + w / 2} y={height + 14} textAnchor="middle" fontSize="7" fill="rgba(255,255,255,0.45)" fontWeight="700">{d.mes}</text></g>);
       })}
     </svg>
   );
@@ -229,58 +194,28 @@ function PanelVisualLegajo({ bcra, nosis, cuil }) {
   const porSit = {};
   entidades.forEach(e => { porSit[e.sit] = (porSit[e.sit] || 0) + e.valor; });
   const fmtM = n => new Intl.NumberFormat('es-AR').format(Math.round(n));
-
   return (
     <>
-      {/* Tabla entidades */}
       <div style={{ background: C.bg4, borderRadius: 10, padding: 18, border: `1px solid ${C.border}`, marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
-          SITUACIÓN CREDITICIA POR ENTIDAD — CENTRAL DE DEUDORES
-        </div>
+        <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>SITUACIÓN CREDITICIA POR ENTIDAD — CENTRAL DE DEUDORES</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${C.border}` }}>
-                  {['','Sit.','Entidad','Monto','%'].map((h,i) => (
-                    <th key={i} style={{ textAlign: i>=3?'right':'left', padding: '5px 7px', color: C.text3, fontWeight: 700, fontSize: 9, textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
+              <thead><tr style={{ borderBottom: `2px solid ${C.border}` }}>{['','Sit.','Entidad','Monto','%'].map((h,i) => (<th key={i} style={{ textAlign: i>=3?'right':'left', padding: '5px 7px', color: C.text3, fontWeight: 700, fontSize: 9, textTransform: 'uppercase' }}>{h}</th>))}</tr></thead>
               <tbody>
-                {entidades.map((e, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={{ padding: '3px 7px' }}><div style={{ width: 5, height: 16, borderRadius: 2, background: SIT_COLOR[e.sit] }}/></td>
-                    <td style={{ padding: '3px 7px', fontWeight: 900, color: SIT_COLOR[e.sit], fontSize: 11 }}>{e.sit}</td>
-                    <td style={{ padding: '3px 7px', color: C.text, fontWeight: 600, fontSize: 11 }}>{e.label}</td>
-                    <td style={{ padding: '3px 7px', color: C.text2, textAlign: 'right', fontSize: 11 }}>${fmtM(e.valor)}</td>
-                    <td style={{ padding: '3px 7px', color: C.text3, textAlign: 'right', fontSize: 11 }}>{((e.valor/totalEnt)*100).toFixed(0)}%</td>
-                  </tr>
-                ))}
+                {entidades.map((e, i) => (<tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: '3px 7px' }}><div style={{ width: 5, height: 16, borderRadius: 2, background: SIT_COLOR[e.sit] }}/></td><td style={{ padding: '3px 7px', fontWeight: 900, color: SIT_COLOR[e.sit], fontSize: 11 }}>{e.sit}</td><td style={{ padding: '3px 7px', color: C.text, fontWeight: 600, fontSize: 11 }}>{e.label}</td><td style={{ padding: '3px 7px', color: C.text2, textAlign: 'right', fontSize: 11 }}>${fmtM(e.valor)}</td><td style={{ padding: '3px 7px', color: C.text3, textAlign: 'right', fontSize: 11 }}>{((e.valor/totalEnt)*100).toFixed(0)}%</td></tr>))}
               </tbody>
-              <tfoot>
-                <tr style={{ borderTop: `2px solid ${C.border}` }}>
-                  <td colSpan="3" style={{ padding: '7px', fontWeight: 900, color: C.text, fontSize: 11 }}>Total</td>
-                  <td colSpan="2" style={{ padding: '7px', fontWeight: 900, color: C.gold, textAlign: 'right', fontSize: 12 }}>${fmtM(totalEnt)}</td>
-                </tr>
-              </tfoot>
+              <tfoot><tr style={{ borderTop: `2px solid ${C.border}` }}><td colSpan="3" style={{ padding: '7px', fontWeight: 900, color: C.text, fontSize: 11 }}>Total</td><td colSpan="2" style={{ padding: '7px', fontWeight: 900, color: C.gold, textAlign: 'right', fontSize: 12 }}>${fmtM(totalEnt)}</td></tr></tfoot>
             </table>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <DonutGrandeSituacion data={entidades} size={200} />
             <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {[1,2,3].map(sit => porSit[sit] ? (
-                <div key={sit} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <div style={{ width: 9, height: 9, borderRadius: 2, background: SIT_COLOR[sit] }}/>
-                  <span style={{ fontSize: 10, color: C.text2, fontWeight: 700 }}>Sit. {sit}: {((porSit[sit]/totalEnt)*100).toFixed(0)}%</span>
-                </div>
-              ) : null)}
+              {[1,2,3].map(sit => porSit[sit] ? (<div key={sit} style={{ display: 'flex', alignItems: 'center', gap: 5 }}><div style={{ width: 9, height: 9, borderRadius: 2, background: SIT_COLOR[sit] }}/><span style={{ fontSize: 10, color: C.text2, fontWeight: 700 }}>Sit. {sit}: {((porSit[sit]/totalEnt)*100).toFixed(0)}%</span></div>) : null)}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Composición + evolución */}
       <div style={{ background: C.bg4, borderRadius: 10, padding: 18, border: `1px solid ${C.border}`, marginBottom: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em' }}>ANÁLISIS VISUAL — SITUACIÓN CREDITICIA</div>
@@ -292,51 +227,139 @@ function PanelVisualLegajo({ bcra, nosis, cuil }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: C.bg3, borderRadius: 10, padding: 14, border: `1px solid ${C.border}` }}>
               <DonutChart data={composicion} size={140} />
               <div style={{ flex: 1 }}>
-                {composicion.map((d, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
-                    <div style={{ width: 9, height: 9, borderRadius: 2, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }}/>
-                    <div style={{ fontSize: 10, color: C.text2, fontWeight: 600, flex: 1 }}>{d.label}</div>
-                    <div style={{ fontSize: 10, color: C.text, fontWeight: 800 }}>{fmt(d.valor)}</div>
-                  </div>
-                ))}
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 10, color: C.text3, fontWeight: 700, textTransform: 'uppercase' }}>Total</span>
-                  <span style={{ fontSize: 13, color: C.gold, fontWeight: 900 }}>{fmt(totalDeuda)}</span>
-                </div>
+                {composicion.map((d, i) => (<div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}><div style={{ width: 9, height: 9, borderRadius: 2, background: PIE_COLORS[i % PIE_COLORS.length], flexShrink: 0 }}/><div style={{ fontSize: 10, color: C.text2, fontWeight: 600, flex: 1 }}>{d.label}</div><div style={{ fontSize: 10, color: C.text, fontWeight: 800 }}>{fmt(d.valor)}</div></div>))}
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between' }}><span style={{ fontSize: 10, color: C.text3, fontWeight: 700, textTransform: 'uppercase' }}>Total</span><span style={{ fontSize: 13, color: C.gold, fontWeight: 900 }}>{fmt(totalDeuda)}</span></div>
               </div>
             </div>
           </div>
           <div>
             <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>BUREAU NOSIS</div>
             <div style={{ background: '#0A1F3A', borderRadius: 10, border: `1px solid ${C.border}`, padding: 14, textAlign: 'center' }}>
-              <svg width="100%" height="80" viewBox="0 0 240 80">
-                <rect x="6" y="6" width="228" height="68" rx="8" fill="#0D2540" stroke="#C8922A" strokeWidth="1.5"/>
-                <circle cx="32" cy="28" r="9" fill="none" stroke="#4A9AE0" strokeWidth="2"/>
-                <path d="M 24 42 Q 32 33 40 42" fill="none" stroke="#4A9AE0" strokeWidth="2"/>
-                <text x="50" y="24" fontSize="9" fontWeight="900" fill="#fff">INFORME CREDITICIO</text>
-                <text x="50" y="35" fontSize="7" fill="rgba(255,255,255,0.5)">CUIL {cuil || 'N/D'}</text>
-                <line x1="50" y1="40" x2="220" y2="40" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/>
-                <rect x="50" y="46" width="45" height="5" rx="2" fill="rgba(74,154,224,0.4)"/>
-                <rect x="100" y="46" width="32" height="5" rx="2" fill="rgba(74,224,138,0.4)"/>
-                <rect x="138" y="46" width="55" height="5" rx="2" fill="rgba(200,146,42,0.4)"/>
-                <rect x="50" y="57" width="72" height="5" rx="2" fill="rgba(255,255,255,0.15)"/>
-                <rect x="128" y="57" width="36" height="5" rx="2" fill="rgba(255,255,255,0.15)"/>
-                <text x="50" y="72" fontSize="6" fill="rgba(255,255,255,0.3)" fontStyle="italic">Documento simulado — Bureau Nosis</text>
-              </svg>
+              <svg width="100%" height="80" viewBox="0 0 240 80"><rect x="6" y="6" width="228" height="68" rx="8" fill="#0D2540" stroke="#C8922A" strokeWidth="1.5"/><circle cx="32" cy="28" r="9" fill="none" stroke="#4A9AE0" strokeWidth="2"/><path d="M 24 42 Q 32 33 40 42" fill="none" stroke="#4A9AE0" strokeWidth="2"/><text x="50" y="24" fontSize="9" fontWeight="900" fill="#fff">INFORME CREDITICIO</text><text x="50" y="35" fontSize="7" fill="rgba(255,255,255,0.5)">CUIL {cuil || 'N/D'}</text><line x1="50" y1="40" x2="220" y2="40" stroke="rgba(255,255,255,0.1)" strokeWidth="1"/><rect x="50" y="46" width="45" height="5" rx="2" fill="rgba(74,154,224,0.4)"/><rect x="100" y="46" width="32" height="5" rx="2" fill="rgba(74,224,138,0.4)"/><rect x="138" y="46" width="55" height="5" rx="2" fill="rgba(200,146,42,0.4)"/><rect x="50" y="57" width="72" height="5" rx="2" fill="rgba(255,255,255,0.15)"/><rect x="128" y="57" width="36" height="5" rx="2" fill="rgba(255,255,255,0.15)"/><text x="50" y="72" fontSize="6" fill="rgba(255,255,255,0.3)" fontStyle="italic">Documento simulado — Bureau Nosis</text></svg>
             </div>
           </div>
         </div>
         <div>
           <div style={{ fontSize: 9, color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>EVOLUCIÓN 12 MESES</div>
-          <div style={{ background: C.bg3, borderRadius: 10, padding: 14, border: `1px solid ${C.border}` }}>
-            <BarChartEvolucion data={evolucion} height={100} />
-          </div>
+          <div style={{ background: C.bg3, borderRadius: 10, padding: 14, border: `1px solid ${C.border}` }}><BarChartEvolucion data={evolucion} height={100} /></div>
         </div>
-        <div style={{ marginTop: 10, fontSize: 9, color: C.text3, fontStyle: 'italic' }}>
-          Datos ilustrativos mientras la integración con Nosis no esté contratada. No representan información crediticia real.
-        </div>
+        <div style={{ marginTop: 10, fontSize: 9, color: C.text3, fontStyle: 'italic' }}>Datos ilustrativos mientras la integración con Nosis no esté contratada.</div>
       </div>
     </>
+  );
+}
+
+// ── MODAL EDITAR SOLICITUD ────────────────────────────────────────────────────
+function ModalEditar({ sol, onClose, onGuardado }) {
+  const cli = sol?.cliente || {};
+  const [f, setF] = useState({
+    nombre: cli.nombre || '',
+    apellido: cli.apellido || '',
+    dni: cli.dni || '',
+    cuil: cli.cuil || '',
+    email: cli.email || '',
+    tel: cli.tel || '',
+    emp: cli.emp || '',
+    antig: cli.antig || '',
+    cbu: cli.cbu || '',
+    monto: sol.monto || '',
+    plazo: sol.plazo || '',
+    tna: sol.tna || '',
+    cuota: sol.cuota || '',
+    linea_nombre: sol.linea_nombre || '',
+    obs: sol.obs || '',
+  });
+  const [guardando, setGuardando] = useState(false);
+  const [ok, setOk] = useState(false);
+
+  async function guardar() {
+    setGuardando(true);
+    try {
+      await db.supabase.from('solicitudes').update({
+        monto: parseFloat(f.monto),
+        plazo: parseInt(f.plazo),
+        tna: parseFloat(f.tna),
+        cuota: Math.round(parseFloat(f.cuota)),
+        linea_nombre: f.linea_nombre,
+        obs: f.obs,
+        cliente: {
+          ...cli,
+          nombre: f.nombre,
+          apellido: f.apellido,
+          dni: f.dni,
+          cuil: f.cuil,
+          email: f.email,
+          tel: f.tel,
+          emp: f.emp,
+          antig: f.antig,
+          cbu: f.cbu,
+        }
+      }).eq('id', sol.id);
+      setOk(true);
+      setTimeout(() => { onGuardado(); onClose(); }, 1500);
+    } catch(e) {
+      alert('Error al guardar. Intentá de nuevo.');
+    }
+    setGuardando(false);
+  }
+
+  const Inp = ({ label, value, onChange, type='text', placeholder }) => (
+    <div style={{ marginBottom: 12 }}>
+      <label style={{ display: 'block', fontSize: 9, fontWeight: 700, color: C.text3, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>{label}</label>
+      <input type={type} value={value} onChange={onChange} placeholder={placeholder}
+        style={{ width: '100%', padding: '9px 12px', border: `1.5px solid ${C.border2}`, borderRadius: 8, fontSize: 12, color: C.text, background: 'rgba(255,255,255,0.05)', fontFamily: 'inherit', fontWeight: 600, boxSizing: 'border-box', outline: 'none' }}
+        onFocus={e=>e.target.style.borderColor=C.gold} onBlur={e=>e.target.style.borderColor=C.border2}/>
+    </div>
+  );
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(3,15,30,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000, padding: 20 }}>
+      <div style={{ background: C.bg4, borderRadius: 14, width: '100%', maxWidth: 700, maxHeight: '90vh', overflowY: 'auto', border: `1px solid ${C.border}` }}>
+        <div style={{ padding: '18px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: C.bg4, zIndex: 1 }}>
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 15, color: C.text, letterSpacing: '0.04em', textTransform: 'uppercase' }}>✏️ EDITAR SOLICITUD</div>
+            <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>{sol.id} — Solo visible antes de la firma del cliente</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: C.text3 }}>✕</button>
+        </div>
+        <div style={{ padding: 24 }}>
+          {ok && <div style={{ background: C.greenL, color: C.green, borderRadius: 8, padding: '10px 14px', fontSize: 12, marginBottom: 16, fontWeight: 700, border: `1px solid ${C.greenB}` }}>✓ GUARDADO CORRECTAMENTE</div>}
+
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.gold, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>DATOS DEL CRÉDITO</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+            <Inp label="LÍNEA DE CRÉDITO" value={f.linea_nombre} onChange={e=>setF({...f,linea_nombre:e.target.value})}/>
+            <Inp label="MONTO ($)" type="number" value={f.monto} onChange={e=>setF({...f,monto:e.target.value})}/>
+            <Inp label="PLAZO (MESES)" type="number" value={f.plazo} onChange={e=>setF({...f,plazo:e.target.value})}/>
+            <Inp label="TNA (%)" type="number" value={f.tna} onChange={e=>setF({...f,tna:e.target.value})}/>
+            <Inp label="CUOTA MENSUAL ($)" type="number" value={f.cuota} onChange={e=>setF({...f,cuota:e.target.value})}/>
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 12px', paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>DATOS DEL CLIENTE</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+            <Inp label="NOMBRE" value={f.nombre} onChange={e=>setF({...f,nombre:e.target.value})}/>
+            <Inp label="APELLIDO" value={f.apellido} onChange={e=>setF({...f,apellido:e.target.value})}/>
+            <Inp label="DNI" value={f.dni} onChange={e=>setF({...f,dni:e.target.value})}/>
+            <Inp label="CUIL" value={f.cuil} onChange={e=>setF({...f,cuil:e.target.value})}/>
+            <Inp label="EMAIL" type="email" value={f.email} onChange={e=>setF({...f,email:e.target.value})}/>
+            <Inp label="TELÉFONO" value={f.tel} onChange={e=>setF({...f,tel:e.target.value})}/>
+            <Inp label="EMPLEADOR" value={f.emp} onChange={e=>setF({...f,emp:e.target.value})}/>
+            <Inp label="ANTIGÜEDAD" value={f.antig} onChange={e=>setF({...f,antig:e.target.value})}/>
+            <div style={{ gridColumn: '1/-1' }}><Inp label="CBU / CVU" value={f.cbu} onChange={e=>setF({...f,cbu:e.target.value})}/></div>
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.text2, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 12px', paddingBottom: 8, borderBottom: `1px solid ${C.border}` }}>OBSERVACIONES</div>
+          <textarea value={f.obs} onChange={e=>setF({...f,obs:e.target.value})}
+            style={{ width: '100%', minHeight: 70, padding: '10px 12px', border: `1.5px solid ${C.border2}`, borderRadius: 8, fontSize: 12, color: C.text, background: 'rgba(255,255,255,0.05)', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}/>
+
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 20 }}>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}`, padding: '10px 22px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>CANCELAR</button>
+            <button onClick={guardar} disabled={guardando} style={{ background: C.gold, color: '#fff', border: 'none', padding: '10px 28px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: guardando ? 'not-allowed' : 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase', opacity: guardando ? 0.6 : 1 }}>
+              {guardando ? 'GUARDANDO...' : '✓ GUARDAR CAMBIOS'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -344,8 +367,10 @@ function PanelVisualLegajo({ bcra, nosis, cuil }) {
 export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
   const [confirmBorrar, setConfirmBorrar] = useState(false);
   const [borrando, setBorrando] = useState(false);
+  const [editando, setEditando] = useState(false);
   const legajoRef = useRef(null);
   const esAdmin = user?.rol === 'admin';
+  const puedeEditar = esAdmin && !sol?.firma_cliente_completada;
 
   const cli = sol?.cliente || {};
   const firma = sol?.firma_metadata || {};
@@ -363,22 +388,13 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
       if (typeof d === 'string' && d.startsWith('http')) {
         const partes = d.split('/');
         docsMap[decodeURIComponent(partes[partes.length - 1] || d)] = d;
-      } else {
-        docsMap[d] = d;
-      }
+      } else { docsMap[d] = d; }
     });
   }
 
   async function borrarLegajo() {
     setBorrando(true);
-    await db.updateSolicitud(sol.id, {
-      firma_cliente_completada: false,
-      firma_metadata: null,
-      bcra_data: null,
-      nosis_data: null,
-      estado: 'rechazado',
-      estado_texto: 'LEGAJO ELIMINADO POR ADMINISTRADOR',
-    });
+    await db.updateSolicitud(sol.id, { firma_cliente_completada: false, firma_metadata: null, bcra_data: null, nosis_data: null, estado: 'rechazado', estado_texto: 'LEGAJO ELIMINADO POR ADMINISTRADOR' });
     setBorrando(false);
     onActualizar();
     onVolver();
@@ -388,45 +404,36 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
     const contenido = legajoRef.current;
     if (!contenido) return;
     const ventana = window.open('', '_blank');
-    ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Legajo ${sol.id}</title>
-    <style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;}
-    .legajo{max-width:900px;margin:0 auto;padding:24px;}.campo{background:#f8f8f8;border-radius:6px;padding:8px 10px;border:1px solid #e0e0e0;margin-bottom:6px;}
-    .lbl{font-size:8px;color:#888;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}.val{font-size:12px;font-weight:700;color:#1a1a1a;}
-    .seccion-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #C8922A;}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
-    pre{font-family:monospace;font-size:9px;white-space:pre-wrap;line-height:1.6;background:#f8f8f8;padding:12px;border-radius:6px;}
-    </style></head><body><div class="legajo">${contenido.innerHTML}</div>
-    <p style="margin-top:20px;font-size:9px;color:#888;text-align:center;">Generado por AUTOLOGROS S.A. · CUIT ${EMPRESA.cuit} · ${new Date().toLocaleString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'})}</p>
-    </body></html>`);
+    ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Legajo ${sol.id}</title><style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:11px;color:#1a1a1a;background:#fff;}.legajo{max-width:900px;margin:0 auto;padding:24px;}</style></head><body><div class="legajo">${contenido.innerHTML}</div></body></html>`);
     ventana.document.close();
     setTimeout(() => ventana.print(), 500);
   }
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg2, fontFamily: 'system-ui, Arial, sans-serif' }}>
-      {/* Header */}
+      {editando && <ModalEditar sol={sol} onClose={() => setEditando(false)} onGuardado={() => { setEditando(false); onActualizar(); }} />}
+
       <div style={{ background: C.bg1, borderBottom: `1px solid ${C.border}`, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <svg width={30} height={30} viewBox="0 0 44 44" fill="none">
-            <polygon points="22,2 40,12 40,32 22,42 4,32 4,12" fill="none" stroke={C.gold} strokeWidth="2.5"/>
-            <polygon points="22,7 36,15 36,29 22,37 8,29 8,15" fill={C.gold} opacity="0.12"/>
-            <text x="22" y="27" textAnchor="middle" fill={C.gold} fontSize="16" fontWeight="900" fontFamily="Arial">$</text>
-          </svg>
+          <svg width={30} height={30} viewBox="0 0 44 44" fill="none"><polygon points="22,2 40,12 40,32 22,42 4,32 4,12" fill="none" stroke={C.gold} strokeWidth="2.5"/><polygon points="22,7 36,15 36,29 22,37 8,29 8,15" fill={C.gold} opacity="0.12"/><text x="22" y="27" textAnchor="middle" fill={C.gold} fontSize="16" fontWeight="900" fontFamily="Arial">$</text></svg>
           <div>
             <div style={{ color: C.text, fontWeight: 900, fontSize: 15, letterSpacing: '0.1em', textTransform: 'uppercase' }}>LEGAJO DIGITAL — {sol.id}</div>
             <div style={{ color: C.text3, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 1 }}>{cli.nombre} {cli.apellido} · {EMPRESA.nombre}</div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          {puedeEditar && (
+            <button onClick={() => setEditando(true)} style={{ background: C.goldL, color: C.gold, border: `1px solid ${C.goldB}`, padding: '9px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>✏️ EDITAR SOLICITUD</button>
+          )}
           <button onClick={imprimirPDF} style={{ background: C.gold, color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>🖨️ IMPRIMIR / PDF</button>
           {esAdmin && !confirmBorrar && (
-            <button onClick={() => setConfirmBorrar(true)} style={{ background: '#6B1A1A', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>🗑️ ELIMINAR LEGAJO</button>
+            <button onClick={() => setConfirmBorrar(true)} style={{ background: '#6B1A1A', color: '#fff', border: 'none', padding: '9px 20px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>🗑️ ELIMINAR</button>
           )}
           {esAdmin && confirmBorrar && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>¿CONFIRMAR ELIMINACIÓN?</span>
-              <button onClick={borrarLegajo} disabled={borrando} style={{ background: C.red, color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{borrando ? 'ELIMINANDO...' : 'SÍ, ELIMINAR'}</button>
-              <button onClick={() => setConfirmBorrar(false)} style={{ background: 'rgba(255,255,255,0.08)', color: C.text2, border: `1px solid ${C.border}`, padding: '9px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>CANCELAR</button>
+              <span style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>¿CONFIRMAR?</span>
+              <button onClick={borrarLegajo} disabled={borrando} style={{ background: C.red, color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{borrando ? '...' : 'SÍ'}</button>
+              <button onClick={() => setConfirmBorrar(false)} style={{ background: 'rgba(255,255,255,0.08)', color: C.text2, border: `1px solid ${C.border}`, padding: '9px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>NO</button>
             </div>
           )}
           <button onClick={onVolver} style={{ background: 'rgba(255,255,255,0.06)', color: C.text2, border: `1px solid ${C.border}`, padding: '9px 16px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase' }}>← VOLVER</button>
@@ -434,9 +441,9 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
       </div>
 
       <div style={{ padding: 28, maxWidth: 960, margin: '0 auto' }}>
-        {!esAdmin && (
+        {puedeEditar && (
           <div style={{ background: C.goldL, border: `1px solid ${C.goldB}`, borderRadius: 8, padding: '10px 16px', marginBottom: 20, fontSize: 11, color: C.gold, fontWeight: 700 }}>
-            🔒 MODO SOLO LECTURA — El analista puede visualizar e imprimir el legajo pero no puede modificarlo ni eliminarlo.
+            ✏️ MODO EDICIÓN DISPONIBLE — El cliente aún no firmó. Podés modificar los datos antes de enviar el link.
           </div>
         )}
 
@@ -451,15 +458,10 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
                 <div style={{ fontSize: 20, fontWeight: 900, color: C.text, textTransform: 'uppercase', marginTop: 12, marginBottom: 4 }}>{cli.nombre} {cli.apellido}</div>
                 <div style={{ fontSize: 12, color: C.text2 }}>DNI {cli.dni} · CUIL {cli.cuil}</div>
               </div>
-              {/* SELFIE del cliente */}
               {firma?.selfie_png && (
                 <div style={{ marginLeft: 20, flexShrink: 0 }}>
                   <div style={{ fontSize: 9, color: C.green, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6, textAlign: 'center' }}>✓ IDENTIDAD VERIFICADA</div>
-                  <img
-                    src={firma.selfie_png}
-                    alt="Selfie cliente"
-                    style={{ width: 110, height: 110, objectFit: 'cover', borderRadius: 10, border: `2px solid ${C.green}`, display: 'block' }}
-                  />
+                  <img src={firma.selfie_png} alt="Selfie cliente" style={{ width: 110, height: 110, objectFit: 'cover', borderRadius: 10, border: `2px solid ${C.green}`, display: 'block' }}/>
                   <div style={{ fontSize: 9, color: C.text3, marginTop: 5, textAlign: 'center', fontWeight: 400 }}>Foto en tiempo real</div>
                 </div>
               )}
@@ -474,7 +476,6 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
             </div>
           </div>
 
-          {/* SECCIÓN 1: DATOS DEL CRÉDITO */}
           <Seccion numero="1" titulo="DATOS DEL CRÉDITO" color={C.blue}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 10 }}>
               <Campo label="LÍNEA DE CRÉDITO" valor={sol.linea_nombre}/>
@@ -492,7 +493,6 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
             </div>
           </Seccion>
 
-          {/* SECCIÓN 2: DATOS DEL CLIENTE */}
           <Seccion numero="2" titulo="DATOS DEL CLIENTE" color={C.text}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
               <Campo label="NOMBRE Y APELLIDO" valor={`${cli.nombre} ${cli.apellido}`}/>
@@ -506,13 +506,10 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
             </div>
           </Seccion>
 
-          {/* SECCIÓN 3: DOCUMENTACIÓN ADJUNTA */}
           <Seccion numero="3" titulo="DOCUMENTACIÓN ADJUNTA" color={C.gold}>
             {Object.keys(docsMap).length > 0 ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {Object.entries(docsMap).map(([nombre, valor]) => (
-                  <DocItem key={nombre} nombre={nombre} valor={valor}/>
-                ))}
+                {Object.entries(docsMap).map(([nombre, valor]) => (<DocItem key={nombre} nombre={nombre} valor={valor}/>))}
               </div>
             ) : (
               <div style={{ fontSize: 12, color: C.text3, fontStyle: 'italic' }}>Sin documentos registrados</div>
@@ -525,9 +522,7 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
             )}
           </Seccion>
 
-          {/* SECCIÓN 4: ANÁLISIS CREDITICIO CON GRÁFICOS */}
           <Seccion numero="4" titulo="ANÁLISIS CREDITICIO — BCRA + NOSIS" color={C.blue}>
-            {/* Datos crudos */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
               <div style={{ background: C.bg4, borderRadius: 10, padding: 18, border: `1px solid ${C.border}` }}>
                 <div style={{ fontSize: 11, fontWeight: 900, color: C.blue, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>CENTRAL DE DEUDORES BCRA</div>
@@ -539,16 +534,11 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
                       </div>
                       <div>
                         <div style={{ fontSize: 9, color: C.text3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>PEOR SITUACIÓN</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: colorSit(bcra.peorSit) }}>{bcra.peorSit===1?'SITUACIÓN NORMAL':bcra.peorSit===2?'RIESGO BAJO':bcra.peorSit===3?'CON PROBLEMAS':bcra.peorSit===4?'ALTO RIESGO':'IRRECUPERABLE'}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: colorSit(bcra.peorSit) }}>{bcra.peorSit===1?'SITUACIÓN NORMAL':bcra.peorSit===2?'RIESGO BAJO':bcra.peorSit===3?'CON PROBLEMAS':'ALTO RIESGO'}</div>
                       </div>
                     </div>
                     <div style={{ fontSize: 11, color: C.text2, marginBottom: 8 }}>{bcra.cantEntidades} entidad(es) informante(s)</div>
-                    {(bcra.deudas||[]).slice(0,5).map((d,i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${C.border}`, fontSize: 11 }}>
-                        <span style={{ color: C.text2 }}>{d.entidad}</span>
-                        <span style={{ color: colorSit(d.situacion), fontWeight: 700 }}>SIT {d.situacion}</span>
-                      </div>
-                    ))}
+                    {(bcra.deudas||[]).slice(0,5).map((d,i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: `1px solid ${C.border}`, fontSize: 11 }}><span style={{ color: C.text2 }}>{d.entidad}</span><span style={{ color: colorSit(d.situacion), fontWeight: 700 }}>SIT {d.situacion}</span></div>))}
                   </>
                 ) : <div style={{ fontSize: 12, color: C.text3, fontStyle: 'italic' }}>No figura en la Central de Deudores del BCRA</div>}
               </div>
@@ -558,79 +548,35 @@ export default function LegajoDigital({ sol, user, onVolver, onActualizar }) {
                   <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 10 }}>
                       {[['EMPLEADO REL. DEP.', nosis.esEmpleado],['JUBILADO', nosis.esJubilado],['MONOTRIBUTISTA', nosis.esMonotributista],['AUTÓNOMO', nosis.esAutonomo]].map(([l,v]) => (
-                        <div key={l} style={{ background: C.bg3, borderRadius: 6, padding: '6px 8px', border: `1px solid ${C.border}` }}>
-                          <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>{l}</div>
-                          <div style={{ fontSize: 12, fontWeight: 900, color: v==='SI'?C.green:v==='NO'?C.red:C.text3 }}>{v||'N/D'}</div>
-                        </div>
+                        <div key={l} style={{ background: C.bg3, borderRadius: 6, padding: '6px 8px', border: `1px solid ${C.border}` }}><div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>{l}</div><div style={{ fontSize: 12, fontWeight: 900, color: v==='SI'?C.green:v==='NO'?C.red:C.text3 }}>{v||'N/D'}</div></div>
                       ))}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                       {[['CHEQUES S/FONDOS 6M', nosis.cheques6mCant, nosis.cheques6mCant>0?C.red:C.green],['CONCURSOS 24M', nosis.concursos24m, nosis.concursos24m>0?C.red:C.green],['DEUDA FISCAL', nosis.deudaFiscal==='SI'?'SÍ':nosis.deudaFiscal==='NO'?'NO':'S/D', nosis.deudaFiscal==='SI'?C.red:C.green],['ANTIGÜEDAD LABORAL', nosis.antiguedadLaboral!=null?`${nosis.antiguedadLaboral} M`:'S/D', nosis.antiguedadLaboral>=6?C.green:C.gold],['CONSULTAS 12M', nosis.consultas12m, C.text2],['COMPROMISO MENS.', nosis.compromisoMensual||'S/D', C.text2]].map(([l,v,color]) => (
-                        <div key={l} style={{ background: C.bg3, borderRadius: 6, padding: '6px 8px', border: `1px solid ${C.border}` }}>
-                          <div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>{l}</div>
-                          <div style={{ fontSize: 12, fontWeight: 900, color }}>{v}</div>
-                        </div>
+                        <div key={l} style={{ background: C.bg3, borderRadius: 6, padding: '6px 8px', border: `1px solid ${C.border}` }}><div style={{ fontSize: 8, color: C.text3, fontWeight: 700, textTransform: 'uppercase', marginBottom: 2 }}>{l}</div><div style={{ fontSize: 12, fontWeight: 900, color }}>{v}</div></div>
                       ))}
                     </div>
                   </>
                 ) : <div style={{ fontSize: 12, color: C.text3, fontStyle: 'italic' }}>{nosis?.error || 'Sin datos de Nosis'}</div>}
               </div>
             </div>
-
-            {/* Gráficos visuales */}
-            {tieneBureau && (
-              <PanelVisualLegajo bcra={bcra} nosis={nosis} cuil={cli.cuil} />
-            )}
+            {tieneBureau && <PanelVisualLegajo bcra={bcra} nosis={nosis} cuil={cli.cuil} />}
           </Seccion>
 
-          {/* SECCIÓN 5: CONTRATO DE MUTUO */}
           <Seccion numero="5" titulo="CONTRATO DE MUTUO CON INTERÉS" color={C.gold}>
             <div style={{ background: C.bg4, borderRadius: 10, padding: 20, border: `1px solid ${C.border}` }}>
-              <pre style={{ fontSize: 11, color: C.text2, fontFamily: 'monospace', whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{`CONTRATO DE MUTUO CON INTERÉS — Ley 25.065 y CCyCN Arts. 1525–1532
-
-MUTUANTE: AUTOLOGROS S.A., CUIT 30-71934732-7
-Domicilio: Lavalle 1390, Piso 3, Oficina B, CABA
-Representante: Nicolás Issaharoff, Presidente
-
-MUTUARIO: ${cli.nombre} ${cli.apellido} — DNI N° ${cli.dni} · CUIL N° ${cli.cuil}
-Email: ${cli.email} · Tel: ${cli.tel} · Empleador: ${cli.emp} · Antigüedad: ${cli.antig}
-CBU/CVU: ${cli.cbu}
-
-PRIMERA — OBJETO: ${fmt(sol.monto)} acreditados en CBU/CVU N° ${cli.cbu}.
-SEGUNDA — DESTINO: Uso personal. Fondos lícitos.
-TERCERA — PLAZO: ${sol.plazo} cuotas de ${fmt(sol.cuota)}. Primera cuota: 30 días.
-CUARTA — TASA: TNA ${sol.tna}% + IVA 21%.
-QUINTA — MORA: ${((sol.tna||0)*1.5).toFixed(2)}% TNA automática (Art. 886 CCyCN).
-SEXTA — PAGO: Débito automático 48hs anticipación.
-SÉPTIMA — CANCELACIÓN ANTICIPADA: Sin penalidades (Art. 1388 CCyCN).
-OCTAVA — DATOS PERSONALES: Autorización BCRA/Nosis (Ley 25.326).
-NOVENA — DOMICILIOS: Empresa: Lavalle 1390 Piso 3 Of. B CABA / Cliente: ${cli.email}.
-DÉCIMA — JURISDICCIÓN: Tribunales de la Ciudad Autónoma de Buenos Aires.
-DÉCIMO PRIMERA — FIRMA DIGITAL: Conforme Ley 25.506.`}</pre>
+              <pre style={{ fontSize: 11, color: C.text2, fontFamily: 'monospace', whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{`CONTRATO DE MUTUO CON INTERÉS — Ley 25.065 y CCyCN Arts. 1525–1532\n\nMUTUANTE: AUTOLOGROS S.A., CUIT 30-71934732-7\nDomicilio: Lavalle 1390, Piso 3, Oficina B, CABA\nRepresentante: Nicolás Issaharoff, Presidente\n\nMUTUARIO: ${cli.nombre} ${cli.apellido} — DNI N° ${cli.dni} · CUIL N° ${cli.cuil}\nEmail: ${cli.email} · Tel: ${cli.tel} · Empleador: ${cli.emp} · Antigüedad: ${cli.antig}\nCBU/CVU: ${cli.cbu}\n\nPRIMERA — OBJETO: ${fmt(sol.monto)} acreditados en CBU/CVU N° ${cli.cbu}.\nSEGUNDA — DESTINO: Uso personal. Fondos lícitos.\nTERCERA — PLAZO: ${sol.plazo} cuotas de ${fmt(sol.cuota)}. Primera cuota: 30 días.\nCUARTA — TASA: TNA ${sol.tna}% + IVA 21%.\nQUINTA — MORA: ${((sol.tna||0)*1.5).toFixed(2)}% TNA automática (Art. 886 CCyCN).\nSEXTA — PAGO: Débito automático 48hs anticipación.\nSÉPTIMA — CANCELACIÓN ANTICIPADA: Sin penalidades (Art. 1388 CCyCN).\nOCTAVA — DATOS PERSONALES: Autorización BCRA/Nosis (Ley 25.326).\nNOVENA — DOMICILIOS: Empresa: Lavalle 1390 Piso 3 Of. B CABA / Cliente: ${cli.email}.\nDÉCIMA — JURISDICCIÓN: Tribunales de la Ciudad Autónoma de Buenos Aires.\nDÉCIMO PRIMERA — FIRMA DIGITAL: Conforme Ley 25.506.`}</pre>
               {sol.firma_cliente_completada && <div style={{ marginTop: 14, padding: '10px 14px', background: C.greenL, borderRadius: 8, border: `1px solid ${C.greenB}`, fontSize: 11, color: C.green, fontWeight: 700 }}>✓ FIRMADO DIGITALMENTE POR AMBAS PARTES · {firma?.timestamp_ar}</div>}
             </div>
           </Seccion>
 
-          {/* SECCIÓN 6: PAGARÉ */}
           <Seccion numero="6" titulo="PAGARÉ SIN PROTESTO" color={C.gold}>
             <div style={{ background: C.bg4, borderRadius: 10, padding: 20, border: `1px solid ${C.border}` }}>
-              <pre style={{ fontSize: 11, color: C.text2, fontFamily: 'monospace', whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{`PAGARÉ SIN PROTESTO — Decreto-Ley 5965/63 · Art. 520 CPCCN
-
-Yo, ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil},
-me obligo a pagar INCONDICIONALMENTE y SIN PROTESTO a la orden de
-AUTOLOGROS S.A., CUIT 30-71934732-7, la suma de ${fmt((sol.cuota||0)*(sol.plazo||0))}.
-
-FORMA DE PAGO: ${sol.plazo} cuotas mensuales de ${fmt(sol.cuota)}.
-TASA: TNA ${sol.tna}% + IVA 21%.
-CLÁUSULA SIN PROTESTO: Art. 50 Decreto-Ley 5965/63.
-JURISDICCIÓN: Tribunales Ordinarios de CABA.
-
-Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni} · CUIL ${cli.cuil}`}</pre>
+              <pre style={{ fontSize: 11, color: C.text2, fontFamily: 'monospace', whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{`PAGARÉ SIN PROTESTO — Decreto-Ley 5965/63 · Art. 520 CPCCN\n\nYo, ${cli.nombre} ${cli.apellido}, DNI N° ${cli.dni}, CUIL N° ${cli.cuil},\nme obligo a pagar INCONDICIONALMENTE y SIN PROTESTO a la orden de\nAUTOLOGROS S.A., CUIT 30-71934732-7, la suma de ${fmt((sol.cuota||0)*(sol.plazo||0))}.\n\nFORMA DE PAGO: ${sol.plazo} cuotas mensuales de ${fmt(sol.cuota)}.\nTASA: TNA ${sol.tna}% + IVA 21%.\nCLÁUSULA SIN PROTESTO: Art. 50 Decreto-Ley 5965/63.\nJURISDICCIÓN: Tribunales Ordinarios de CABA.\n\nEmisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni} · CUIL ${cli.cuil}`}</pre>
               {sol.firma_cliente_completada && <div style={{ marginTop: 14, padding: '10px 14px', background: C.greenL, borderRadius: 8, border: `1px solid ${C.greenB}`, fontSize: 11, color: C.green, fontWeight: 700 }}>✓ FIRMADO DIGITALMENTE POR EL DEUDOR · {firma?.timestamp_ar}</div>}
             </div>
           </Seccion>
 
-          {/* SECCIÓN 7: FIRMA DIGITAL */}
           <Seccion numero="7" titulo="FIRMA DIGITAL DEL CLIENTE" color={C.green}>
             {sol.firma_cliente_completada && firma ? (
               <>
@@ -669,7 +615,6 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni} · CUIL ${cli.cuil}`}</p
             )}
           </Seccion>
 
-          {/* SECCIÓN 8: CERTIFICADO */}
           {sol.firma_cliente_completada && firma && (
             <Seccion numero="8" titulo="CERTIFICADO DE FIRMA DIGITAL" color={C.green}>
               <div style={{ background: C.greenL, border: `1.5px solid ${C.greenB}`, borderRadius: 12, padding: 24 }}>
@@ -685,9 +630,6 @@ Emisor: ${cli.nombre} ${cli.apellido} · DNI ${cli.dni} · CUIL ${cli.cuil}`}</p
                 <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 8, padding: 14 }}>
                   <div style={{ fontSize: 10, color: C.green, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>HASH SHA-256 DEL DOCUMENTO</div>
                   <div style={{ fontSize: 11, color: C.text, fontFamily: 'monospace', wordBreak: 'break-all', lineHeight: 1.6 }}>{firma.hash_documento || '—'}</div>
-                </div>
-                <div style={{ marginTop: 14, fontSize: 10, color: C.text3, fontStyle: 'italic', lineHeight: 1.6 }}>
-                  Este certificado acredita que los documentos fueron firmados digitalmente conforme a la Ley 25.506. El hash SHA-256 garantiza la integridad del documento.
                 </div>
               </div>
             </Seccion>
@@ -709,10 +651,10 @@ export function PanelLegajos({ sols, user, onVerLegajo, onDesembolsar }) {
   const cntPendientes = sols.filter(s => !s.firma_cliente_completada && s.estado === 'aprobado').length;
   return (
     <div>
-      <div style={{ fontSize: 18, fontWeight: 900, color: C.text, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>LEGAJOS DIGITALES</div>
-      <div style={{ fontSize: 11, color: C.text3, marginBottom: 20, fontWeight: 400 }}>{cntFirmados} legajo(s) completo(s) · {cntPendientes} pendiente(s) de firma</div>
+      <div style={{ fontSize: 18, fontWeight: 900, color: '#FFFFFF', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>LEGAJOS DIGITALES</div>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginBottom: 20, fontWeight: 400 }}>{cntFirmados} legajo(s) completo(s) · {cntPendientes} pendiente(s) de firma</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
-        {[['TOTAL SOLICITUDES', sols.length, C.text, 'rgba(255,255,255,0.05)', C.border],['LEGAJOS COMPLETOS', cntFirmados, C.green, C.greenL, C.greenB],['PENDIENTES FIRMA', cntPendientes, C.gold, C.goldL, C.goldB]].map(([l,n,color,bg,border]) => (
+        {[['TOTAL SOLICITUDES', sols.length, '#FFFFFF', 'rgba(255,255,255,0.05)', 'rgba(255,255,255,0.08)'],['LEGAJOS COMPLETOS', cntFirmados, '#4AE08A', 'rgba(74,224,138,0.08)', 'rgba(74,224,138,0.15)'],['PENDIENTES FIRMA', cntPendientes, '#C8922A', 'rgba(200,146,42,0.15)', 'rgba(200,146,42,0.25)']].map(([l,n,color,bg,border]) => (
           <div key={l} style={{ background: bg, borderRadius: 12, padding: 16, border: `1px solid ${border}` }}>
             <div style={{ fontSize: 30, fontWeight: 900, color, lineHeight: 1 }}>{n}</div>
             <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color, marginTop: 6 }}>{l}</div>
@@ -721,45 +663,45 @@ export function PanelLegajos({ sols, user, onVerLegajo, onDesembolsar }) {
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
         {[['todos','TODOS'],['firmados','COMPLETOS'],['pendientes','PENDIENTES FIRMA']].map(([k,l]) => (
-          <button key={k} onClick={() => setFiltro(k)} style={{ padding: '8px 16px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: filtro===k?C.gold:'rgba(255,255,255,0.05)', color: filtro===k?'#fff':C.text2, border: `1px solid ${filtro===k?C.gold:C.border}`, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{l}</button>
+          <button key={k} onClick={() => setFiltro(k)} style={{ padding: '8px 16px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: filtro===k?'#C8922A':'rgba(255,255,255,0.05)', color: filtro===k?'#fff':'rgba(255,255,255,0.55)', border: `1px solid ${filtro===k?'#C8922A':'rgba(255,255,255,0.08)'}`, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{l}</button>
         ))}
       </div>
       {!lista.length ? (
-        <div style={{ background: C.bg4, borderRadius: 12, padding: 60, textAlign: 'center', border: `1px solid ${C.border}` }}>
+        <div style={{ background: '#0D2540', borderRadius: 12, padding: 60, textAlign: 'center', border: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📁</div>
-          <div style={{ color: C.text3, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>NO HAY LEGAJOS EN ESTA CATEGORÍA</div>
+          <div style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>NO HAY LEGAJOS EN ESTA CATEGORÍA</div>
         </div>
       ) : lista.map(s => {
         const cli = s.cliente || {};
         const firmado = s.firma_cliente_completada;
+        const desembolsado = (s.estado_texto||'').toLowerCase().includes('desembolsado') || s.estado === 'desembolsado';
         return (
-          <div key={s.id} onClick={() => onVerLegajo(s)} style={{ background: C.bg4, borderRadius: 12, padding: 18, marginBottom: 10, cursor: 'pointer', border: `1px solid ${firmado ? C.greenB : C.border}`, borderLeft: `4px solid ${firmado ? C.green : C.gold}` }}>
+          <div key={s.id} onClick={() => onVerLegajo(s)} style={{ background: '#0D2540', borderRadius: 12, padding: 18, marginBottom: 10, cursor: 'pointer', border: `1px solid ${firmado ? 'rgba(74,224,138,0.15)' : 'rgba(255,255,255,0.08)'}`, borderLeft: `4px solid ${firmado ? '#4AE08A' : '#C8922A'}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div style={{ fontSize: 24 }}>{firmado ? '✅' : '📋'}</div>
                 <div>
-                  <div style={{ fontWeight: 900, fontSize: 14, color: C.text, textTransform: 'uppercase', letterSpacing: '0.03em' }}>{cli.nombre} {cli.apellido}</div>
-                  <div style={{ fontSize: 11, color: C.text2, marginTop: 3, fontWeight: 400 }}>{s.id} · DNI {cli.dni} · {s.linea_nombre} · {fmt(s.monto)} · {s.plazo}M</div>
-                  <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>Solicitud: {s.fecha}{firmado && s.fecha_firma_cliente ? ` · Firmado: ${new Date(s.fecha_firma_cliente).toLocaleDateString('es-AR')}` : ''}</div>
+                  <div style={{ fontWeight: 900, fontSize: 14, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.03em' }}>{cli.nombre} {cli.apellido}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 3, fontWeight: 400 }}>{s.id} · DNI {cli.dni} · {s.linea_nombre} · {fmt(s.monto)} · {s.plazo}M</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>Solicitud: {s.fecha}{firmado && s.fecha_firma_cliente ? ` · Firmado: ${new Date(s.fecha_firma_cliente).toLocaleDateString('es-AR')}` : ''}</div>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {firmado && <span style={{ fontSize: 10, background: C.greenL, color: C.green, borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: `1px solid ${C.greenB}` }}>FIRMADO</span>}
-                  {s.bcra_data && <span style={{ fontSize: 10, background: 'rgba(74,154,224,0.15)', color: C.blue, borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: '1px solid rgba(74,154,224,0.3)' }}>BCRA</span>}
-                  {s.nosis_data && <span style={{ fontSize: 10, background: C.goldL, color: C.gold, borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: `1px solid ${C.goldB}` }}>NOSIS</span>}
+                  {firmado && <span style={{ fontSize: 10, background: 'rgba(74,224,138,0.08)', color: '#4AE08A', borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: '1px solid rgba(74,224,138,0.15)' }}>FIRMADO</span>}
+                  {s.bcra_data && <span style={{ fontSize: 10, background: 'rgba(74,154,224,0.15)', color: '#4A9AE0', borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: '1px solid rgba(74,154,224,0.3)' }}>BCRA</span>}
+                  {s.nosis_data && <span style={{ fontSize: 10, background: 'rgba(200,146,42,0.15)', color: '#C8922A', borderRadius: 6, padding: '3px 10px', fontWeight: 700, border: '1px solid rgba(200,146,42,0.25)' }}>NOSIS</span>}
                 </div>
-                {firmado && !(s.estado_texto||'').toLowerCase().includes('desembolsado') && s.estado !== 'desembolsado' && onDesembolsar && (
-                  <button
-                    onClick={e => { e.stopPropagation(); onDesembolsar(s); }}
-                    style={{ background: C.green, color: '#000', border: 'none', padding: '7px 14px', borderRadius: 8, fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                {firmado && !desembolsado && onDesembolsar && (
+                  <button onClick={e => { e.stopPropagation(); onDesembolsar(s); }}
+                    style={{ background: '#4AE08A', color: '#000', border: 'none', padding: '7px 14px', borderRadius: 8, fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                     💰 DESEMBOLSAR
                   </button>
                 )}
-                {((s.estado_texto||'').toLowerCase().includes('desembolsado') || s.estado === 'desembolsado') && (
-                  <span style={{ fontSize: 10, background: C.greenL, color: C.green, borderRadius: 6, padding: '4px 12px', fontWeight: 700, border: `1px solid ${C.greenB}`, whiteSpace: 'nowrap' }}>✓ DESEMBOLSADO</span>
+                {desembolsado && (
+                  <span style={{ fontSize: 10, background: 'rgba(74,224,138,0.08)', color: '#4AE08A', borderRadius: 6, padding: '4px 12px', fontWeight: 700, border: '1px solid rgba(74,224,138,0.15)', whiteSpace: 'nowrap' }}>✓ DESEMBOLSADO</span>
                 )}
-                <span style={{ color: C.text3, fontSize: 18 }}>›</span>
+                <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 18 }}>›</span>
               </div>
             </div>
           </div>
